@@ -45,14 +45,23 @@ describe('aiRebelPlay', () => {
     expect(picked.id).toBe('water-12');
   });
 
-  test('king played own and rebel cannot win — dumps cheapest non-element', () => {
+  test('king played own and rebel cannot win or tie — dumps cheapest non-element', () => {
     const hand = [
-      { suit: 'water', rank: 14, id: 'water-14' }, // valuable trump, save it
+      { suit: 'water', rank: 6, id: 'water-6' },   // own, but loses (king rank 14)
       { suit: 'earth', rank: 4, id: 'earth-4' },   // cheap non-element — dump
       { suit: 'air', rank: 8, id: 'air-8' },
     ];
     const picked = aiRebelPlay(hand, { suit: 'fire', rank: 14 }, 'water', 'fire');
     expect(picked.id).toBe('earth-4');
+  });
+
+  test('king played own — rebel prefers a tie (draw) over dumping', () => {
+    const hand = [
+      { suit: 'water', rank: 10, id: 'water-10' }, // own, ties king's rank — forces a draw
+      { suit: 'earth', rank: 4, id: 'earth-4' },   // dump candidate, but tie is better
+    ];
+    const picked = aiRebelPlay(hand, { suit: 'fire', rank: 10 }, 'water', 'fire');
+    expect(picked.id).toBe('water-10');
   });
 
   test('king played non-element — any own-element auto-wins, pick cheapest', () => {

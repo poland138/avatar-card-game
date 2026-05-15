@@ -9,7 +9,13 @@ This is an Expo / React Native project. All commands run from the `avatar-card-g
 - `npm install` — install dependencies
 - `npm start` — launch Expo dev server (QR code for Expo Go on device)
 - `npm run android` / `npm run ios` / `npm run web` — start on a specific target
-- No test suite, no linter, no typecheck script is configured. Don't claim correctness from passing CI — there is none. Verify behavior by running the app.
+- `npm test` — run Jest tests (preset: `jest-expo`)
+- `npm run test:watch` — Jest in watch mode
+- Run a single test file: `npx jest __tests__/rules.test.js`
+- Run tests matching a name: `npx jest -t "highest rank wins"`
+- No linter or typecheck script is configured.
+
+Origin: `https://github.com/poland138/avatar-card-game.git` (main branch).
 
 The project was originally a Snack (web-based Expo playground). It has no `node_modules/`, `.expo/`, or generated `ios/`/`android/` folders yet — first action in a fresh clone is `npm install`.
 
@@ -35,7 +41,7 @@ If you need to add a new async/animated transition, follow the same pattern: red
 - `ai.js` — three AI policies: `aiPlayFFASimultaneous`, `aiKingPlay`, `aiRebelPlay`
 - `reducer.js` — orchestration of all actions; also contains an inline `buildSkirmishState` + `getCardsWonBy`
 - `reducerHelpers.js` — `initialState`, player factory, deal functions, XP constants
-- `skirmish.js` + `SkirmishView.js` — **orphaned**: not imported anywhere. They contain a war-style skirmish simulator that the current reducer does not use. The reducer instead replays a normal FFA round among tied players using the cards they won. Confirm with the user before deleting or wiring these up.
+- Skirmish logic lives inline in `reducer.js` (`buildSkirmishState`, `getCardsWonBy`) — tied players replay a mini FFA with the cards they won. There used to be an alternative war-style implementation in `skirmish.js`/`SkirmishView.js`; those were deleted as stale.
 
 ### Phase semantics
 
@@ -89,6 +95,12 @@ Act without asking for:
 - `id` on cards is always `"${suit}-${rank}"` for real cards, `"phantom-..."` for debug-injected ones, and `"back-${idx}"` for face-down placeholders. Don't reuse these prefixes.
 - The reducer is pure; all side effects (timers, persistence) live in `App.js` effects keyed off `pending*` / `nextTransition` flags. Maintain this separation.
 - Comments in this codebase are sparse and only explain *why* (e.g. the rebel-order forcing in `dealRebellionHands`). Match that style — don't add narration.
+
+### Testing strategy
+
+Tests live in `__tests__/` and target **pure logic only** — `deck`, `rules`, `ai`, and reducer transitions. There are no UI/component tests yet; React Native Testing Library can be added later if visual regressions become an issue, but logic is where game bugs hide.
+
+When adding a new rule, AI policy, or reducer action, add or extend a test in the matching file. Keep tests deterministic — the AI and deck modules use `Math.random()`, so either assert membership/length properties (as `ai.test.js` does) or mock `Math.random` for a single test, never both in the same case.
 
 ### Things that look broken but aren't
 
