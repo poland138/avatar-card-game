@@ -12,7 +12,7 @@ const HEIGHT_FACTOR = { 1: 3.7, 2: 4.2 };
 
 export function cardMetrics(width, height, rows = 1) {
   const byHeight = (height - 16) / (1.4 * HEIGHT_FACTOR[rows]);
-  const cardW = Math.floor(Math.max(28, Math.min(110, width / 7, byHeight)));
+  const cardW = Math.floor(Math.max(28, Math.min(110, width / 5.5, byHeight)));
   return { cardW, cardH: Math.round(cardW * 1.4) };
 }
 
