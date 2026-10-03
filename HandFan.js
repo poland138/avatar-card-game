@@ -25,7 +25,7 @@ const SCREEN_W = Dimensions.get('window').width;
 const AVAIL    = SCREEN_W - 40;
 const CARD_W   = 56;
 const CARD_H   = 84;
-const RAISE    = 12;
+const RAISE    = Math.round(CARD_H / 3);
 
 export default function HandFan({
   cards,

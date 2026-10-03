@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, TextInput, Modal, StyleSheet } from 'react-native';
-import { ELEMENTS, COLORS } from './constants';
+import { Trophy, Star, Swords, Bug, Eye, EyeOff, Gem } from 'lucide-react-native';
+import { ELEMENTS, SUITS, COLORS } from './constants';
+import { ElementIcon } from './elementIcons';
 import { rankLabel } from './deck';
 import { SAFE_TOP, SAFE_BOTTOM } from './safeArea';
 import CardDisplay from './CardDisplay';
@@ -10,6 +12,7 @@ import DiscardPile from './DiscardPile';
 import HintButton from './HintButton';
 import EndTurnButton from './EndTurnButton';
 import HandFan from './HandFan';
+import { getCardsWonBy } from './reducer';
 
 const TOTAL_TRICKS = 13;
 
@@ -42,6 +45,23 @@ export default function FreeForAllView({
 
   const [showSkipModal, setShowSkipModal] = useState(false);
   const [hideOpponentCards, setHideOpponentCards] = useState(false);
+  const [cardsWonModalIdx, setCardsWonModalIdx] = useState(null);
+
+  const cardsWonByIdx = useMemo(() => {
+    const out = {};
+    for (let i = 0; i < players.length; i++) {
+      out[i] = getCardsWonBy(discardPile, i);
+    }
+    return out;
+  }, [discardPile, players.length]);
+
+  const pointsWonByIdx = useMemo(() => {
+    const out = {};
+    for (const k of Object.keys(cardsWonByIdx)) {
+      out[k] = cardsWonByIdx[k].reduce((s, c) => s + c.rank, 0);
+    }
+    return out;
+  }, [cardsWonByIdx]);
 
   const [skirmishIntroSeen, setSkirmishIntroSeen] = useState(false);
   const skirmishKey = skirmish
@@ -74,13 +94,19 @@ export default function FreeForAllView({
           onPress={() => setHideOpponentCards(v => !v)}
           style={({ pressed }) => [styles.toolBtn, pressed && styles.pressed]}
         >
-          <Text style={styles.toolBtnText}>{hideOpponentCards ? '👁️ Show' : '🙈 Hide'}</Text>
+          {hideOpponentCards ? (
+            <Eye size={12} color="#fff" strokeWidth={2.25} />
+          ) : (
+            <EyeOff size={12} color="#fff" strokeWidth={2.25} />
+          )}
+          <Text style={styles.toolBtnText}>{' '}{hideOpponentCards ? 'Show' : 'Hide'}</Text>
         </Pressable>
         <Pressable
           onPress={() => setShowSkipModal(true)}
           style={({ pressed }) => [styles.debugBtn, pressed && styles.pressed]}
         >
-          <Text style={styles.debugBtnText}>🐛 Skip</Text>
+          <Bug size={12} color="#fff" strokeWidth={2.25} />
+          <Text style={styles.debugBtnText}>{' '}Skip</Text>
         </Pressable>
       </View>
 
@@ -94,6 +120,15 @@ export default function FreeForAllView({
         }}
       />
 
+      <CardsWonModal
+        visible={cardsWonModalIdx !== null}
+        player={cardsWonModalIdx !== null ? players[cardsWonModalIdx] : null}
+        playerIdx={cardsWonModalIdx}
+        cards={cardsWonModalIdx !== null ? cardsWonByIdx[cardsWonModalIdx] : []}
+        points={cardsWonModalIdx !== null ? pointsWonByIdx[cardsWonModalIdx] : 0}
+        onClose={() => setCardsWonModalIdx(null)}
+      />
+
       <SkirmishIntroModal
         visible={showSkirmishIntro}
         skirmish={skirmish}
@@ -103,19 +138,6 @@ export default function FreeForAllView({
         onClose={() => setSkirmishIntroSeen(true)}
       />
 
-      <EndTurnButton
-        enabled={waitingForContinue ? true : canEndTurn}
-        onPress={waitingForContinue ? onContinue : onEndTurn}
-        label={waitingForContinue ? 'Continue' : 'End Turn'}
-      />
-
-      <View style={styles.header}>
-        <Text style={styles.title}>
-          {skirmish ? '⚔️ Skirmish' : 'Avatar: KotH'}
-        </Text>
-        <Text style={styles.subtitle}>Trick {trickNumber}</Text>
-      </View>
-
       <View style={styles.messageBox}>
         <Text style={styles.messageText}>{message}</Text>
       </View>
@@ -124,25 +146,29 @@ export default function FreeForAllView({
         <MiniHand
           player={players[2]} idx={2}
           trickWins={trickWins[2]} scores={scores[2]}
+          pointsWon={pointsWonByIdx[2]}
           isWinner={revealedTrick?.winner === 2}
           nextPlayId={!committedFFAPick && !revealedTrick ? aiPreviewPicks?.[2] : null}
           hideCards={hideOpponentCards}
+          onPress={() => setCardsWonModalIdx(2)}
         />
       </View>
 
       <View style={styles.fieldRow}>
+        <ElementalBackground players={players} activeIndices={activeIndices} />
         <View style={[styles.sideMini, !activeIndices.includes(1) && styles.sitOut]}>
           <MiniHand
             player={players[1]} idx={1} orientation="left"
             trickWins={trickWins[1]} scores={scores[1]}
+            pointsWon={pointsWonByIdx[1]}
             isWinner={revealedTrick?.winner === 1}
             nextPlayId={!committedFFAPick && !revealedTrick ? aiPreviewPicks?.[1] : null}
             hideCards={hideOpponentCards}
+            onPress={() => setCardsWonModalIdx(1)}
           />
         </View>
 
         <View style={styles.field}>
-          <ElementalBackground players={players} activeIndices={activeIndices} />
           <View style={styles.fieldGrid}>
             <View style={styles.slotTop}>
               <PlayedCardSlot card={getPlayedCard(2)} winner={revealedTrick?.winner === 2} />
@@ -174,30 +200,54 @@ export default function FreeForAllView({
           <MiniHand
             player={players[3]} idx={3} orientation="right"
             trickWins={trickWins[3]} scores={scores[3]}
+            pointsWon={pointsWonByIdx[3]}
             isWinner={revealedTrick?.winner === 3}
             nextPlayId={!committedFFAPick && !revealedTrick ? aiPreviewPicks?.[3] : null}
             hideCards={hideOpponentCards}
+            onPress={() => setCardsWonModalIdx(3)}
           />
         </View>
       </View>
 
-      <View style={[styles.handPanel, { paddingBottom: SAFE_BOTTOM + 56 }]}>
+      <View style={[styles.handPanel, { paddingBottom: SAFE_BOTTOM }]}>
         <View style={styles.handHeader}>
-          <Text style={styles.handLabel}>
-            You — <Text style={{ color: ELEMENTS[myElement]?.text, fontWeight: '800' }}>
-              {ELEMENTS[myElement]?.symbol} {ELEMENTS[myElement]?.name}
+          <View style={styles.handLabelRow}>
+            <Text style={styles.handLabel}>You — </Text>
+            <ElementIcon suit={myElement} size={12} color={ELEMENTS[myElement]?.text} />
+            <Text style={[styles.handLabel, { color: ELEMENTS[myElement]?.text, fontWeight: '800' }]}>
+              {' '}{ELEMENTS[myElement]?.name}
             </Text>
-          </Text>
-          <Text style={styles.handStat}>🏆 {trickWins[0]}</Text>
-          <Text style={styles.handScore}>⭐ {scores[0]}</Text>
+          </View>
+          <View style={styles.handStat}>
+            <Trophy size={11} color="#fff" strokeWidth={2.25} />
+            <Text style={styles.handStatText}>{' '}{trickWins[0]}</Text>
+          </View>
+          <View style={styles.handScore}>
+            <Star size={11} color="#fff" strokeWidth={2.25} />
+            <Text style={styles.handStatText}>{' '}{scores[0]}</Text>
+          </View>
+          <Pressable
+            onPress={() => setCardsWonModalIdx(0)}
+            style={({ pressed }) => [styles.handPoints, pressed && styles.pressed]}
+          >
+            <Gem size={11} color="#fff" strokeWidth={2.25} />
+            <Text style={styles.handStatText}>{' '}{pointsWonByIdx[0] ?? 0}</Text>
+          </Pressable>
           {humanFFAPick && (
-            <Text style={styles.handSelected}>
-              {ELEMENTS[humanFFAPick.suit].symbol} {rankLabel(humanFFAPick.rank)}
-            </Text>
+            <View style={styles.handLabelRow}>
+              <ElementIcon suit={humanFFAPick.suit} size={12} color="#fde047" />
+              <Text style={styles.handSelected}>{' '}{rankLabel(humanFFAPick.rank)}</Text>
+            </View>
           )}
           {!isHumanActive && (
             <Text style={styles.sitOutLabel}>Sitting out skirmish</Text>
           )}
+          <EndTurnButton
+            style={styles.headerEndTurn}
+            enabled={waitingForContinue ? true : canEndTurn}
+            onPress={waitingForContinue ? onContinue : onEndTurn}
+            label={waitingForContinue ? 'Continue' : 'End Turn'}
+          />
         </View>
         <View style={styles.handCards}>
           <HandFan
@@ -213,7 +263,9 @@ export default function FreeForAllView({
 }
 
 function PlayedCardSlot({ card, winner }) {
-  if (!card) return null;
+  if (!card) {
+    return <View style={styles.cardPlaceholder} />;
+  }
   if (card.isBack) {
     return (
       <View style={styles.cardBack}>
@@ -244,13 +296,65 @@ function CenterStatus({ humanFFAPick, committedFFAPick, revealedTrick, players, 
   );
 }
 
+function CardsWonModal({ visible, player, playerIdx, cards, points, onClose }) {
+  if (!player) return null;
+  const elem = ELEMENTS[player.element];
+  const name = playerIdx === 0 ? 'You' : `${elem.name}bender`;
+  const sorted = [...cards].sort(
+    (a, b) => SUITS.indexOf(a.suit) - SUITS.indexOf(b.suit) || a.rank - b.rank
+  );
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable style={styles.modalSheet} onPress={e => e.stopPropagation()}>
+          <View style={styles.cwTitleRow}>
+            <ElementIcon suit={player.element} size={18} color={elem.text} />
+            <Text style={[styles.modalTitle, { marginLeft: 6, marginBottom: 0 }]}>
+              {name} — Cards Won
+            </Text>
+          </View>
+          <Text style={styles.modalSubtitle}>
+            {sorted.length} card{sorted.length === 1 ? '' : 's'} captured this phase
+          </Text>
+
+          {sorted.length === 0 ? (
+            <Text style={styles.cwEmpty}>No tricks won yet.</Text>
+          ) : (
+            <View style={styles.cwFanWrap}>
+              <HandFan cards={sorted} disabled onPress={() => {}} />
+            </View>
+          )}
+
+          <View style={styles.cwTotalRow}>
+            <Gem size={14} color="#67e8f9" strokeWidth={2.25} />
+            <Text style={styles.cwTotalText}>{' '}Total points: {points}</Text>
+          </View>
+
+          <View style={styles.modalButtonRow}>
+            <Pressable
+              onPress={onClose}
+              style={({ pressed }) => [styles.modalContinue, pressed && styles.pressed]}
+            >
+              <Text style={styles.modalContinueText}>Close</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 function SkirmishIntroModal({ visible, skirmish, players, trickWins, isHumanActive, onClose }) {
   if (!skirmish) return null;
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <View style={styles.modalSheet}>
-          <Text style={styles.modalTitle}>⚔️ Skirmish!</Text>
+          <View style={styles.modalTitleRow}>
+            <Swords size={18} color="#fde047" strokeWidth={2.25} />
+            <Text style={styles.modalTitle}>{' '}Skirmish!</Text>
+          </View>
           <Text style={styles.modalSubtitle}>
             {skirmish.recursionLevel === 0
               ? `${skirmish.participants.length}-way tie. Tied players replay with the cards they won.`
@@ -271,9 +375,12 @@ function SkirmishIntroModal({ visible, skirmish, players, trickWins, isHumanActi
                     !isParticipant && styles.tallyRowOut,
                   ]}
                 >
-                  <Text style={styles.tallyName} numberOfLines={1}>
-                    {elem.symbol} {name}
-                  </Text>
+                  <View style={styles.tallyNameRow}>
+                    <ElementIcon suit={p.element} size={14} />
+                    <Text style={styles.tallyName} numberOfLines={1}>
+                      {' '}{name}
+                    </Text>
+                  </View>
                   <Text style={styles.tallyValue}>
                     {isParticipant ? `${trickWins[idx]} tricks` : 'sitting out'}
                   </Text>
@@ -342,9 +449,12 @@ function SkipFFAModal({ visible, players, onClose, onSubmit }) {
               const name = i === 0 ? 'You' : `${elem.name}bender`;
               return (
                 <View key={i} style={[styles.inputRow, { backgroundColor: elem.bg }]}>
-                  <Text style={styles.inputLabel} numberOfLines={1}>
-                    {elem.symbol} {name}
-                  </Text>
+                  <View style={styles.inputLabelRow}>
+                    <ElementIcon suit={p.element} size={14} />
+                    <Text style={styles.inputLabel} numberOfLines={1}>
+                      {' '}{name}
+                    </Text>
+                  </View>
                   <TextInput
                     style={styles.input}
                     keyboardType="number-pad"
@@ -416,21 +526,16 @@ const styles = StyleSheet.create({
   toolBtn: {
     backgroundColor: '#475569', borderColor: '#64748b', borderWidth: 1,
     paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8,
+    flexDirection: 'row', alignItems: 'center',
   },
   toolBtnText: { color: '#fff', fontWeight: '700', fontSize: 11 },
   debugBtn: {
     backgroundColor: '#7e22ce', borderColor: '#c084fc', borderWidth: 1,
     paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8,
+    flexDirection: 'row', alignItems: 'center',
   },
   debugBtnText: { color: '#fff', fontWeight: '800', fontSize: 11 },
   pressed: { opacity: 0.85 },
-
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 6,
-  },
-  title: { color: '#fde047', fontWeight: '800', fontSize: 16 },
-  subtitle: { color: COLORS.textMuted, fontSize: 11 },
 
   messageBox: {
     backgroundColor: '#1e293bb3', borderRadius: 8, padding: 8,
@@ -438,16 +543,16 @@ const styles = StyleSheet.create({
   },
   messageText: { color: '#fde68a', textAlign: 'center', fontSize: 12, fontWeight: '600' },
 
-  fieldRow: { flex: 1, flexDirection: 'row', gap: 4, marginBottom: 8 },
+  fieldRow: {
+    flex: 1, flexDirection: 'row', gap: 4, marginBottom: 8,
+    marginHorizontal: -8, // bleed the elemental X to screen edges
+    position: 'relative',
+    overflow: 'hidden',
+  },
   sideMini: { width: 48 },
   sitOut: { opacity: 0.3 },
 
-  field: {
-    flex: 1,
-    backgroundColor: COLORS.bgDark,
-    borderRadius: 18, borderWidth: 3, borderColor: '#92400ecc',
-    overflow: 'hidden',
-  },
+  field: { flex: 1 },
   fieldGrid: { flex: 1, justifyContent: 'space-between', padding: 6 },
   slotTop: { alignItems: 'center' },
   slotBottom: { alignItems: 'center' },
@@ -469,20 +574,37 @@ const styles = StyleSheet.create({
   },
   cardBackText: { color: '#ddd6fe', fontSize: 24 },
 
+  // Translucent dashed-border placeholder showing where each player's card will land.
+  cardPlaceholder: {
+    width: 44, height: 64, borderRadius: 8,
+    borderWidth: 2, borderStyle: 'dashed', borderColor: '#ffffff55',
+    backgroundColor: '#00000033',
+  },
+
   handPanel: { backgroundColor: '#1e293b80', borderRadius: 12, padding: 8 },
   handHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     marginBottom: 6, flexWrap: 'wrap',
   },
+  headerEndTurn: { marginLeft: 'auto' },
   handLabel: { color: COLORS.textMuted, fontSize: 11 },
+  handLabelRow: { flexDirection: 'row', alignItems: 'center' },
   handStat: {
-    backgroundColor: '#1e293b', color: '#fff', fontSize: 10,
-    paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, overflow: 'hidden',
+    backgroundColor: '#1e293b',
+    paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4,
+    flexDirection: 'row', alignItems: 'center',
   },
   handScore: {
-    backgroundColor: '#a16207cc', color: '#fff', fontSize: 10,
-    paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, overflow: 'hidden',
+    backgroundColor: '#a16207cc',
+    paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4,
+    flexDirection: 'row', alignItems: 'center',
   },
+  handPoints: {
+    backgroundColor: '#0e7490cc',
+    paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4,
+    flexDirection: 'row', alignItems: 'center',
+  },
+  handStatText: { color: '#fff', fontSize: 10 },
   handSelected: { color: '#fde047', fontSize: 11, fontWeight: '700' },
   sitOutLabel: { color: COLORS.textDim, fontSize: 11, fontStyle: 'italic' },
   handCards: { paddingTop: 4 },
@@ -496,8 +618,25 @@ const styles = StyleSheet.create({
     borderRadius: 14, padding: 14,
   },
   modalTitle: { color: '#fde047', fontWeight: '800', fontSize: 18, marginBottom: 4, textAlign: 'center' },
+  modalTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   modalSubtitle: { color: COLORS.textMuted, fontSize: 12, marginBottom: 12, textAlign: 'center' },
   modalNote: { color: COLORS.textMuted, fontSize: 11, marginVertical: 10, textAlign: 'center' },
+
+  cwTitleRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    marginBottom: 4,
+  },
+  cwEmpty: {
+    color: COLORS.textDim, fontSize: 12, textAlign: 'center',
+    paddingVertical: 18, fontStyle: 'italic',
+  },
+  cwFanWrap: { alignItems: 'center', paddingVertical: 8 },
+  cwTotalRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#0e7490cc', borderRadius: 8,
+    paddingVertical: 8, marginTop: 12, marginBottom: 4,
+  },
+  cwTotalText: { color: '#fff', fontWeight: '800', fontSize: 13 },
 
   tallyGrid: { gap: 6 },
   tallyRow: {
@@ -508,7 +647,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tallyRowOut: { opacity: 0.4 },
-  tallyName: { color: '#fff', fontWeight: '800', fontSize: 13, flex: 1 },
+  tallyNameRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  tallyName: { color: '#fff', fontWeight: '800', fontSize: 13, flexShrink: 1 },
   tallyValue: { color: '#fff', fontWeight: '700', fontSize: 12 },
 
   inputList: { gap: 6 },
@@ -520,7 +660,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 8,
   },
-  inputLabel: { color: '#fff', fontWeight: '800', fontSize: 13, flex: 1 },
+  inputLabelRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  inputLabel: { color: '#fff', fontWeight: '800', fontSize: 13, flexShrink: 1 },
   input: {
     backgroundColor: '#0f172a',
     color: '#fff',

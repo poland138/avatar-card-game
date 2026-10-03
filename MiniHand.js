@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { ELEMENTS, SUITS, COLORS } from './constants';
 import { rankLabel } from './deck';
 
@@ -9,10 +9,12 @@ export default function MiniHand({
   orientation = 'horizontal',
   trickWins,
   scores,
+  pointsWon,
   kingIdx,
   isWinner,
   nextPlayId,
   hideCards = false,
+  onPress,
 }) {
   if (!player) return null;
   const elem = ELEMENTS[player.element];
@@ -26,8 +28,10 @@ export default function MiniHand({
   const isSide = orientation === 'left' || orientation === 'right';
   const rotation = orientation === 'left' ? '-90deg' : orientation === 'right' ? '90deg' : '0deg';
 
-  const pill = (
-    <View style={[styles.pill, isWinner && styles.winnerBorder]}>
+  const hasStats =
+    trickWins !== undefined || scores !== undefined || pointsWon !== undefined;
+  const pillInner = (
+    <>
       <View style={styles.topRow}>
         <View style={styles.label}>
           {isKing && <Text style={styles.crown}>👑</Text>}
@@ -36,13 +40,16 @@ export default function MiniHand({
             {displayName}
           </Text>
         </View>
-        {(trickWins !== undefined || scores !== undefined) && (
+        {hasStats && (
           <View style={styles.stats}>
             {trickWins !== undefined && (
               <Text style={styles.statBadge}>🏆 {trickWins}</Text>
             )}
             {scores !== undefined && (
               <Text style={styles.scoreBadge}>⭐ {scores}</Text>
+            )}
+            {pointsWon !== undefined && (
+              <Text style={styles.pointBadge}>💎 {pointsWon}</Text>
             )}
           </View>
         )}
@@ -70,6 +77,23 @@ export default function MiniHand({
           })}
         </View>
       )}
+    </>
+  );
+
+  const pill = onPress ? (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.pill,
+        isWinner && styles.winnerBorder,
+        pressed && styles.pressed,
+      ]}
+    >
+      {pillInner}
+    </Pressable>
+  ) : (
+    <View style={[styles.pill, isWinner && styles.winnerBorder]}>
+      {pillInner}
     </View>
   );
 
@@ -125,6 +149,11 @@ const styles = StyleSheet.create({
     color: '#fff', backgroundColor: '#a16207cc', fontSize: 10,
     paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4, overflow: 'hidden',
   },
+  pointBadge: {
+    color: '#fff', backgroundColor: '#0e7490cc', fontSize: 10,
+    paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4, overflow: 'hidden',
+  },
+  pressed: { opacity: 0.85 },
 
   cards: { flexDirection: 'row', gap: 1 },
   miniCard: {

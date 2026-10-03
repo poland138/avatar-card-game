@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Sparkles, Lock } from 'lucide-react-native';
 import { ELEMENTS, UPGRADE_STUBS, COLORS } from './constants';
+import { ElementIcon } from './elementIcons';
 import { SAFE_TOP, SAFE_BOTTOM } from './safeArea';
 
 export default function UpgradeView({ element, currentXp = 0, onContinue, onBack }) {
@@ -19,7 +21,7 @@ export default function UpgradeView({ element, currentXp = 0, onContinue, onBack
       </Pressable>
 
       <View style={[styles.banner, { backgroundColor: elem.bg, borderColor: elem.border }]}>
-        <Text style={styles.bannerSymbol}>{elem.symbol}</Text>
+        <ElementIcon suit={element} size={36} />
         <View style={styles.bannerCenter}>
           <Text style={styles.bannerTitle}>{elem.name}bender</Text>
           <Text style={styles.bannerFlavor}>{elem.flavor}</Text>
@@ -31,9 +33,12 @@ export default function UpgradeView({ element, currentXp = 0, onContinue, onBack
       </View>
 
       <View style={styles.panel}>
-        <Text style={styles.panelTitle}>
-          ✨ Upgrades <Text style={styles.panelSubtitle}>(coming soon)</Text>
-        </Text>
+        <View style={styles.panelTitleRow}>
+          <Sparkles size={16} color={COLORS.textPrimary} strokeWidth={2.25} />
+          <Text style={styles.panelTitle}>
+            {' '}Upgrades <Text style={styles.panelSubtitle}>(coming soon)</Text>
+          </Text>
+        </View>
         <View style={styles.upgradeList}>
           {UPGRADE_STUBS.map(up => (
             <UpgradeCard key={up.id} upgrade={up} />
@@ -55,9 +60,14 @@ function UpgradeCard({ upgrade }) {
   return (
     <View style={[styles.upgrade, !upgrade.unlocked && styles.upgradeLocked]}>
       <View style={styles.upgradeHeader}>
-        <Text style={styles.upgradeName}>
-          {upgrade.unlocked ? '✨ ' : '🔒 '}{upgrade.name}
-        </Text>
+        <View style={styles.upgradeNameRow}>
+          {upgrade.unlocked ? (
+            <Sparkles size={13} color="#fff" strokeWidth={2.25} />
+          ) : (
+            <Lock size={13} color="#fff" strokeWidth={2.25} />
+          )}
+          <Text style={styles.upgradeName}>{' '}{upgrade.name}</Text>
+        </View>
         <Text style={styles.upgradeCost}>
           {upgrade.cost === 0 ? 'Owned' : `${upgrade.cost} XP`}
         </Text>
@@ -80,7 +90,6 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 }, elevation: 4,
   },
-  bannerSymbol: { fontSize: 36 },
   bannerCenter: { flex: 1 },
   bannerTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 2 },
   bannerFlavor: { color: '#ffffffcc', fontSize: 12 },
@@ -91,8 +100,9 @@ const styles = StyleSheet.create({
   panel: {
     backgroundColor: COLORS.bgPanel, borderRadius: 14, padding: 16, marginBottom: 16,
   },
+  panelTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   panelTitle: {
-    color: COLORS.textPrimary, fontSize: 16, fontWeight: '800', marginBottom: 12,
+    color: COLORS.textPrimary, fontSize: 16, fontWeight: '800',
   },
   panelSubtitle: { fontSize: 11, color: COLORS.textDim, fontWeight: '400' },
 
@@ -105,6 +115,7 @@ const styles = StyleSheet.create({
   upgradeHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4,
   },
+  upgradeNameRow: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
   upgradeName: { color: '#fff', fontWeight: '700', fontSize: 14 },
   upgradeCost: { color: COLORS.textDim, fontSize: 11 },
   upgradeDesc: { color: COLORS.textMuted, fontSize: 11 },

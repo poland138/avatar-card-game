@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "avatar-card-game",
-    "slug": "snack-f859ff40-9a4c-4eed-b7e5-4b56d24e37e3",
+    "name": "Avatar Card Game",
+    "slug": "avatar-card-game",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,6 +16,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.poland138.avatarcardgame",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -25,6 +26,11 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "description": "Elemental cards game based off the classic card game Hearts. First there is balance, then one of the nations attacks. How long can you be king?"
+    "description": "Elemental cards game based off the classic card game Hearts. First there is balance, then one of the nations attacks. How long can you be king?",
+    "extra": {
+      "eas": {
+        "projectId": "e0237992-028c-46c2-b1bf-fc3ae43d9d77"
+      }
+    }
   }
 }

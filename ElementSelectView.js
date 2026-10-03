@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { ELEMENTS, SUITS, COLORS } from './constants';
+import { ELEMENT_ICONS } from './elementIcons';
 import { SAFE_TOP, SAFE_BOTTOM } from './safeArea';
 
 export default function ElementSelectView({ onSelect }) {
@@ -17,6 +18,7 @@ export default function ElementSelectView({ onSelect }) {
       <View style={styles.grid}>
         {SUITS.map(suit => {
           const elem = ELEMENTS[suit];
+          const Icon = ELEMENT_ICONS[suit];
           return (
             <Pressable
               key={suit}
@@ -28,8 +30,15 @@ export default function ElementSelectView({ onSelect }) {
               ]}
             >
               <View style={styles.tileHeader}>
-                <Text style={styles.tileSymbol}>{elem.symbol}</Text>
-                <Text style={styles.tileName}>{elem.name}bender</Text>
+                <Icon size={22} color="#fff" strokeWidth={2.25} />
+                <Text
+                  style={styles.tileName}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.8}
+                >
+                  {elem.name}bender
+                </Text>
               </View>
             </Pressable>
           );
@@ -53,18 +62,18 @@ const styles = StyleSheet.create({ //adds the buttons with each bending type
   
   grid: { //Grid that contains element buttons
     flexDirection: 'row', flexWrap: 'wrap',
-    justifyContent: 'space-between', rowGap: 12, columnGap: 12,
+    rowGap: 12, columnGap: 12,
   },
 
   tile: { //Colored element buttons/boxes
-    width: '48%', borderRadius: 14, borderWidth: 4,
-    paddingVertical: 16, paddingHorizontal: 18,
+    flexBasis: '48%', flexGrow: 1,
+    borderRadius: 14, borderWidth: 4,
+    paddingVertical: 16, paddingHorizontal: 10,
     shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 }, elevation: 4,
   },
-  
+
   tilePressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
-  tileHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  tileSymbol: { fontSize: 22 },
-  tileName: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  tileHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  tileName: { color: '#fff', fontSize: 15, fontWeight: '700', flexShrink: 1 },
 });

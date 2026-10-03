@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ELEMENTS } from './constants';
+import { ElementIcon } from './elementIcons';
 import { rankLabel } from './deck';
 
 export default function CardDisplay({ card, small = false, dim = false, highlighted = false }) {
@@ -23,9 +24,7 @@ export default function CardDisplay({ card, small = false, dim = false, highligh
         <Text style={[styles.cornerText, small && styles.cornerTextSmall]}>
           {rankLabel(card.rank)}
         </Text>
-        <Text style={[styles.cornerSymbol, small && styles.cornerSymbolSmall]}>
-          {elem.symbol}
-        </Text>
+        <ElementIcon suit={card.suit} size={small ? 10 : 12} />
       </View>
 
       {/* Center: big face card letter, or blank for number cards */}
@@ -42,9 +41,7 @@ export default function CardDisplay({ card, small = false, dim = false, highligh
         <Text style={[styles.cornerText, small && styles.cornerTextSmall]}>
           {rankLabel(card.rank)}
         </Text>
-        <Text style={[styles.cornerSymbol, small && styles.cornerSymbolSmall]}>
-          {elem.symbol}
-        </Text>
+        <ElementIcon suit={card.suit} size={small ? 10 : 12} />
       </View>
     </View>
   );
@@ -77,8 +74,6 @@ const styles = StyleSheet.create({
   },
   cornerText: { color: '#fff', fontWeight: '800', fontSize: 12 },
   cornerTextSmall: { fontSize: 10 },
-  cornerSymbol: { fontSize: 12 },
-  cornerSymbolSmall: { fontSize: 10 },
 
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   centerText: { color: '#fff', fontSize: 22, fontWeight: '700' },

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, Modal, ScrollView, Dimensions, StyleSheet } from 'react-native';
+import { Crown, Trash2 } from 'lucide-react-native';
 import { ELEMENTS, SUITS, COLORS } from './constants';
+import { ElementIcon } from './elementIcons';
 import { rankLabel } from './deck';
 import { SAFE_TOP, SAFE_BOTTOM } from './safeArea';
 
@@ -21,12 +23,12 @@ export default function DiscardPile({ discardPile, players, rebelOrder, kingIdx,
 
   const headerSymbols = isRebellion
     ? [
-        ELEMENTS[players[kingIdx]?.element]?.symbol || '👑',
-        ELEMENTS[players[rebelOrder[0]]?.element]?.symbol || 'L',
-        ELEMENTS[players[rebelOrder[1]]?.element]?.symbol || 'M',
-        ELEMENTS[players[rebelOrder[2]]?.element]?.symbol || 'R',
+        { suit: players[kingIdx]?.element, fallback: 'crown' },
+        { suit: players[rebelOrder[0]]?.element, fallback: 'L' },
+        { suit: players[rebelOrder[1]]?.element, fallback: 'M' },
+        { suit: players[rebelOrder[2]]?.element, fallback: 'R' },
       ]
-    : SUITS.map(s => ELEMENTS[s].symbol);
+    : SUITS.map(s => ({ suit: s, fallback: null }));
 
   return (
     <>
@@ -34,7 +36,8 @@ export default function DiscardPile({ discardPile, players, rebelOrder, kingIdx,
         onPress={() => setOpen(true)}
         style={({ pressed }) => [styles.btn, pressed && styles.pressed, style]}
       >
-        <Text style={styles.btnText}>🗑️ ({discardPile.length})</Text>
+        <Trash2 size={12} color="#fff" strokeWidth={2.25} />
+        <Text style={styles.btnText}>{' '}({discardPile.length})</Text>
       </Pressable>
 
       <Modal
@@ -70,7 +73,13 @@ export default function DiscardPile({ discardPile, players, rebelOrder, kingIdx,
               {headerSymbols.map((sym, i) => (
                 <View key={i} style={styles.col}>
                   <View style={[styles.box, styles.headerBox]}>
-                    <Text style={styles.headerText}>{sym}</Text>
+                    {ELEMENTS[sym.suit] ? (
+                      <ElementIcon suit={sym.suit} size={16} />
+                    ) : sym.fallback === 'crown' ? (
+                      <Crown size={16} color="#fff" strokeWidth={2.25} />
+                    ) : (
+                      <Text style={styles.headerText}>{sym.fallback}</Text>
+                    )}
                   </View>
                 </View>
               ))}
@@ -195,7 +204,7 @@ function CardBox({ entry }) {
         entry.isWinner && styles.winnerBox,
       ]}
     >
-      <Text style={styles.cardSymbol}>{cardElem.symbol}</Text>
+      <ElementIcon suit={entry.card.suit} size={13} />
       <Text style={styles.cardRank}>{rankLabel(entry.card.rank)}</Text>
     </View>
   );
@@ -209,6 +218,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   btnText: { color: '#fff', fontSize: 11 },
   pressed: { opacity: 0.85 },
@@ -279,7 +290,6 @@ const styles = StyleSheet.create({
   emptyBox: { backgroundColor: '#0f172a', opacity: 0.1 },
   emptyText: { color: COLORS.textDim, fontSize: 11 },
 
-  cardSymbol: { fontSize: 13 },
   cardRank: { color: '#fff', fontWeight: '800', fontSize: 11 },
 
   winnerBox: { borderColor: '#ffffff', borderWidth: 3 },

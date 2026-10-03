@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { ELEMENTS, REBELLION_DUELS, COLORS } from './constants';
+import { ELEMENTS, COLORS } from './constants';
 import { rankLabel } from './deck';
 import { SAFE_TOP, SAFE_BOTTOM } from './safeArea';
 import CardDisplay from './CardDisplay';
@@ -104,9 +104,15 @@ export default function RebellionView({
   const endTurnLabel = isWaitingForKingHuman ? 'Launch Attack' : 'Defend';
   const endTurnAction = isWaitingForKingHuman ? commitSelected : onEndRebelTurn;
 
-  const kingSection = (
-    <KingAttacksSection
-      labelPosition={isKingHuman ? 'bottom' : 'top'}
+  const kingHalf = (
+    <KingHalfRow
+      kingMini={!isKingHuman && kingIdx !== null ? (
+        <MiniHand
+          player={players[kingIdx]} idx={kingIdx}
+          scores={scores[kingIdx]} kingIdx={kingIdx}
+          hideCards={hideOpponentCards}
+        />
+      ) : null}
       kingLanes={kingLanes}
       laneOutcomes={laneOutcomes}
       selectedKingCards={selectedKingCards}
@@ -116,11 +122,14 @@ export default function RebellionView({
       selectedHandCard={selectedHandCard}
     />
   );
-  const rebelSection = (
-    <RebelDefensesSection
-      labelPosition={isKingHuman ? 'top' : 'bottom'}
+  const rebelStrips = (
+    <RebelStripRow
+      miniPosition={isKingHuman ? 'top' : 'bottom'}
       players={players}
       rebelOrder={rebelOrder}
+      scores={scores}
+      kingIdx={kingIdx}
+      hideOpponentCards={hideOpponentCards}
       rebelResponses={rebelResponses}
       laneOutcomes={laneOutcomes}
       kingLanes={kingLanes}
@@ -164,69 +173,23 @@ export default function RebellionView({
         )}
       </View>
 
-      <EndTurnButton
-        enabled={waitingForContinue ? true : canEndTurn}
-        onPress={waitingForContinue ? onContinue : endTurnAction}
-        label={waitingForContinue ? 'Continue' : endTurnLabel}
-      />
-
-      <View style={styles.header}>
-        <Text style={styles.title}>Avatar: KotH</Text>
-        <Text style={styles.subtitle}>👑 Duel {duelNumber}/{REBELLION_DUELS}</Text>
-      </View>
-
-      <ScoreStrip players={players} kingIdx={kingIdx} scores={scores} />
       <DuelTally duelWins={duelWins} />
 
-      <View style={styles.messageBox}>
-        <Text style={styles.messageText}>{message}</Text>
-      </View>
-
-      {topIdx !== null && (
-        <View style={styles.topOpponentRow}>
-          <MiniHand
-            player={players[topIdx]} idx={topIdx}
-            scores={scores[topIdx]} kingIdx={kingIdx}
-            hideCards={hideOpponentCards}
-          />
-        </View>
-      )}
-
-      <View style={styles.fieldRow}>
-        <View style={styles.sideMini}>
-          {leftIdx !== null && (
-            <MiniHand
-              player={players[leftIdx]} idx={leftIdx} orientation="left"
-              scores={scores[leftIdx]} kingIdx={kingIdx}
-              hideCards={hideOpponentCards}
-            />
-          )}
-        </View>
-
-        <View style={styles.field}>
+      {kingIdx !== null && (
+        <View style={styles.battlefield}>
           <RebellionBackground
             players={players} kingIdx={kingIdx}
             rebelOrder={rebelOrder} isKingHuman={isKingHuman}
           />
-          <View style={styles.fieldInner}>
+          <View style={styles.battlefieldInner}>
             {isKingHuman ? (
-              <>{rebelSection}{vsRow}{kingSection}</>
+              <>{rebelStrips}{vsRow}{kingHalf}</>
             ) : (
-              <>{kingSection}{vsRow}{rebelSection}</>
+              <>{kingHalf}{vsRow}{rebelStrips}</>
             )}
           </View>
         </View>
-
-        <View style={styles.sideMini}>
-          {rightIdx !== null && (
-            <MiniHand
-              player={players[rightIdx]} idx={rightIdx} orientation="right"
-              scores={scores[rightIdx]} kingIdx={kingIdx}
-              hideCards={hideOpponentCards}
-            />
-          )}
-        </View>
-      </View>
+      )}
 
       {phase === 'rebellion' && (
         <PlayerHand
@@ -239,6 +202,11 @@ export default function RebellionView({
           onTapHandCard={tapHandCard}
           humanRebelSelection={humanRebelSelection}
           onSelectRebelCard={onSelectRebelCard}
+          waitingForContinue={waitingForContinue}
+          canEndTurn={canEndTurn}
+          endTurnLabel={endTurnLabel}
+          endTurnAction={endTurnAction}
+          onContinue={onContinue}
         />
       )}
 
@@ -252,29 +220,6 @@ export default function RebellionView({
           </Pressable>
         </View>
       )}
-    </View>
-  );
-}
-
-function ScoreStrip({ players, kingIdx, scores }) {
-  return (
-    <View style={styles.scoreStrip}>
-      {players.map((p, idx) => {
-        const elem = ELEMENTS[p.element];
-        const isKing = kingIdx === idx;
-        const displayName = idx === 0 ? 'You' : `${elem.name}bender`;
-        return (
-          <View
-            key={idx}
-            style={[styles.scoreTile, { backgroundColor: elem.bg }, isKing && styles.scoreTileKing]}
-          >
-            <Text style={styles.scoreName} numberOfLines={1}>
-              {isKing ? '👑 ' : ''}{elem.symbol} {displayName}
-            </Text>
-            <Text style={styles.scoreValue}>⭐ {scores[idx]}</Text>
-          </View>
-        );
-      })}
     </View>
   );
 }
@@ -306,110 +251,133 @@ function VsRow({ laneOutcomes }) {
   );
 }
 
-function KingAttacksSection({
-  labelPosition, kingLanes, laneOutcomes,
+function KingHalfRow({
+  kingMini, kingLanes, laneOutcomes,
   selectedKingCards, onLaneTap, onClearLane,
   isWaitingForKingHuman, selectedHandCard,
 }) {
-  const label = <Text style={styles.sectionLabelKing}>👑 King's Attacks</Text>;
-  const grid = (
-    <View style={styles.laneGrid}>
-      {[0, 1, 2].map(laneIdx => {
-        const kingCard = kingLanes[laneIdx];
-        const outcome = laneOutcomes[laneIdx];
-        const selectedKingCard = selectedKingCards[laneIdx];
-        const isHotSlot = isWaitingForKingHuman && selectedHandCard && !kingCard;
-        return (
-          <Pressable
-            key={laneIdx}
-            onPress={() => {
-              if (kingCard) return;
-              if (selectedKingCard) onClearLane(laneIdx);
-              else if (isWaitingForKingHuman && selectedHandCard) onLaneTap(laneIdx);
-            }}
-            style={[styles.lane, outcomeBorder(outcome), isHotSlot && styles.laneHot]}
-          >
-            <View style={styles.laneContent}>
-              {kingCard ? (
-                <CardDisplay card={kingCard} highlighted={outcome === 'king'} />
-              ) : selectedKingCard ? (
-                <CardDisplay card={selectedKingCard} highlighted />
-              ) : (
-                <View
-                  style={[
-                    styles.lanePlaceholder,
-                    isHotSlot && styles.lanePlaceholderActive,
-                    isWaitingForKingHuman && !selectedHandCard && styles.lanePlaceholderHint,
-                  ]}
-                >
-                  <Text style={styles.lanePlaceholderText}>
-                    {isHotSlot ? 'Tap' : (isWaitingForKingHuman ? '+' : '...')}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
   return (
-    <View style={styles.section}>
-      {labelPosition === 'top' && label}
-      {grid}
-      {labelPosition === 'bottom' && label}
+    <View style={styles.kingHalf}>
+      {kingMini && <View style={styles.kingMiniWrap}>{kingMini}</View>}
+      <View style={styles.kingAttackRow}>
+        {[0, 1, 2].map(laneIdx => (
+          <KingAttackSlot
+            key={laneIdx}
+            laneIdx={laneIdx}
+            kingCard={kingLanes[laneIdx]}
+            outcome={laneOutcomes[laneIdx]}
+            selectedKingCard={selectedKingCards[laneIdx]}
+            isWaitingForKingHuman={isWaitingForKingHuman}
+            selectedHandCard={selectedHandCard}
+            onLaneTap={onLaneTap}
+            onClearLane={onClearLane}
+          />
+        ))}
+      </View>
     </View>
   );
 }
 
-function RebelDefensesSection({
-  labelPosition, players, rebelOrder, rebelResponses,
-  laneOutcomes, kingLanes, humanRebelSelection, isWaitingForHumanRebel,
+function KingAttackSlot({
+  laneIdx, kingCard, outcome, selectedKingCard,
+  isWaitingForKingHuman, selectedHandCard, onLaneTap, onClearLane,
 }) {
-  const label = <Text style={styles.sectionLabelRebel}>⚔️ Rebellion's Defense</Text>;
-  const grid = (
-    <View style={styles.laneGrid}>
+  const isHotSlot = isWaitingForKingHuman && selectedHandCard && !kingCard;
+  return (
+    <Pressable
+      onPress={() => {
+        if (kingCard) return;
+        if (selectedKingCard) onClearLane(laneIdx);
+        else if (isWaitingForKingHuman && selectedHandCard) onLaneTap(laneIdx);
+      }}
+      style={[styles.lane, outcomeBorder(outcome), isHotSlot && styles.laneHot]}
+    >
+      <View style={styles.laneContent}>
+        {kingCard ? (
+          <CardDisplay card={kingCard} highlighted={outcome === 'king'} />
+        ) : selectedKingCard ? (
+          <CardDisplay card={selectedKingCard} highlighted />
+        ) : (
+          <View
+            style={[
+              styles.lanePlaceholder,
+              isHotSlot && styles.lanePlaceholderActive,
+              isWaitingForKingHuman && !selectedHandCard && styles.lanePlaceholderHint,
+            ]}
+          >
+            <Text style={styles.lanePlaceholderText}>
+              {isHotSlot ? 'Tap' : (isWaitingForKingHuman ? '+' : '...')}
+            </Text>
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
+}
+
+function RebelStripRow({
+  miniPosition, players, rebelOrder, scores, kingIdx, hideOpponentCards,
+  rebelResponses, laneOutcomes, kingLanes,
+  humanRebelSelection, isWaitingForHumanRebel,
+}) {
+  return (
+    <View style={styles.zoneStrips}>
       {rebelOrder.map((rebelIdx, laneIdx) => {
         const rebel = players[rebelIdx];
-        const elem = ELEMENTS[rebel.element];
-        const displayName = rebelIdx === 0 ? 'You' : `${elem.name}bender`;
-        const rebelCard = rebelResponses[laneIdx];
-        const outcome = laneOutcomes[laneIdx];
-        const isHumanLane = rebelIdx === 0;
-        const isSelectedHuman = isHumanLane && humanRebelSelection && !rebelCard;
-        const kingCard = kingLanes[laneIdx];
+        const showMini = rebelIdx !== 0;
+        const mini = showMini ? (
+          <MiniHand
+            player={rebel} idx={rebelIdx}
+            scores={scores[rebelIdx]} kingIdx={kingIdx}
+            hideCards={hideOpponentCards}
+          />
+        ) : null;
         return (
-          <View key={laneIdx} style={[styles.lane, outcomeBorder(outcome)]}>
-            <Text style={[styles.rebelName, { color: elem.text }]} numberOfLines={1}>
-              {elem.symbol} {displayName}
-              {isHumanLane && isWaitingForHumanRebel ? ' (Defend!)' : ''}
-            </Text>
-            <View style={styles.laneContent}>
-              {rebelCard ? (
-                <CardDisplay card={rebelCard.card} highlighted={outcome === 'rebel'} />
-              ) : isSelectedHuman ? (
-                <CardDisplay card={humanRebelSelection} highlighted />
-              ) : (
-                <View
-                  style={[
-                    styles.lanePlaceholder,
-                    isWaitingForHumanRebel && isHumanLane && styles.lanePlaceholderActive,
-                  ]}
-                >
-                  <Text style={styles.lanePlaceholderText}>{kingCard ? '?' : '...'}</Text>
-                </View>
-              )}
-            </View>
+          <View key={laneIdx} style={styles.zoneStripCol}>
+            {miniPosition === 'top' && mini}
+            <RebelDefenseSlot
+              laneIdx={laneIdx}
+              rebelIdx={rebelIdx}
+              rebelCard={rebelResponses[laneIdx]}
+              outcome={laneOutcomes[laneIdx]}
+              kingCard={kingLanes[laneIdx]}
+              humanRebelSelection={humanRebelSelection}
+              isWaitingForHumanRebel={isWaitingForHumanRebel}
+            />
+            {miniPosition === 'bottom' && mini && (
+              <View style={styles.zoneStripColBottomMini}>{mini}</View>
+            )}
           </View>
         );
       })}
     </View>
   );
+}
+
+function RebelDefenseSlot({
+  rebelIdx, rebelCard, outcome, kingCard,
+  humanRebelSelection, isWaitingForHumanRebel,
+}) {
+  const isHumanLane = rebelIdx === 0;
+  const isSelectedHuman = isHumanLane && humanRebelSelection && !rebelCard;
   return (
-    <View style={styles.section}>
-      {labelPosition === 'top' && label}
-      {grid}
-      {labelPosition === 'bottom' && label}
+    <View style={[styles.lane, outcomeBorder(outcome)]}>
+      <View style={styles.laneContent}>
+        {rebelCard ? (
+          <CardDisplay card={rebelCard.card} highlighted={outcome === 'rebel'} />
+        ) : isSelectedHuman ? (
+          <CardDisplay card={humanRebelSelection} highlighted />
+        ) : (
+          <View
+            style={[
+              styles.lanePlaceholder,
+              isWaitingForHumanRebel && isHumanLane && styles.lanePlaceholderActive,
+            ]}
+          >
+            <Text style={styles.lanePlaceholderText}>{kingCard ? '?' : '...'}</Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -419,9 +387,19 @@ function PlayerHand({
   isWaitingForKingHuman, isWaitingForHumanRebel,
   selectedKingCards, usedIds, selectedHandCard,
   onTapHandCard, humanRebelSelection, onSelectRebelCard,
+  waitingForContinue, canEndTurn, endTurnLabel, endTurnAction, onContinue,
 }) {
+  const endTurn = (
+    <EndTurnButton
+      style={styles.headerEndTurn}
+      enabled={waitingForContinue ? true : canEndTurn}
+      onPress={waitingForContinue ? onContinue : endTurnAction}
+      label={waitingForContinue ? 'Continue' : endTurnLabel}
+    />
+  );
+
   return (
-    <View style={[styles.handPanel, { paddingBottom: SAFE_BOTTOM + 56 }]}>
+    <View style={[styles.handPanel, { paddingBottom: SAFE_BOTTOM }]}>
       {isKingHuman ? (
         <>
           <View style={styles.handHeader}>
@@ -437,6 +415,7 @@ function PlayerHand({
                   : `Pick a card (${selectedKingCards.filter(c => c).length}/3 placed)`}
               </Text>
             )}
+            {endTurn}
           </View>
           <HandFan
             cards={human?.hand || []}
@@ -463,6 +442,7 @@ function PlayerHand({
               </Text>
             )}
             {!isWaitingForHumanRebel && <Text style={styles.waitingHint}>Waiting...</Text>}
+            {endTurn}
           </View>
           <HandFan
             cards={human?.hand || []}
@@ -477,10 +457,10 @@ function PlayerHand({
 }
 
 function outcomeBorder(outcome) {
-  if (outcome === 'king')  return { borderColor: '#facc15' };
-  if (outcome === 'rebel') return { borderColor: '#f87171' };
-  if (outcome === 'draw')  return { borderColor: '#c084fc' };
-  return { borderColor: COLORS.borderDim };
+  if (outcome === 'king')  return styles.laneOutcomeKing;
+  if (outcome === 'rebel') return styles.laneOutcomeRebel;
+  if (outcome === 'draw')  return styles.laneOutcomeDraw;
+  return null;
 }
 
 const styles = StyleSheet.create({
@@ -501,25 +481,6 @@ const styles = StyleSheet.create({
   debugBtnText: { color: '#fff', fontWeight: '800', fontSize: 11 },
   pressed: { opacity: 0.85 },
 
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: 6,
-  },
-  title: { color: '#fde047', fontWeight: '800', fontSize: 16 },
-  subtitle: { color: COLORS.textMuted, fontSize: 11 },
-
-  scoreStrip: { flexDirection: 'row', gap: 4, marginBottom: 6 },
-  scoreTile: {
-    flex: 1, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 6,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-  },
-  scoreTileKing: { borderColor: '#facc15', borderWidth: 2 },
-  scoreName: { color: '#fff', fontWeight: '800', fontSize: 10, flex: 1 },
-  scoreValue: {
-    color: '#fff', fontSize: 10, backgroundColor: '#0f172a99',
-    paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4, overflow: 'hidden',
-  },
-
   duelTally: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12,
     backgroundColor: '#1e293b99', borderRadius: 8, padding: 6, marginBottom: 6,
@@ -529,30 +490,37 @@ const styles = StyleSheet.create({
   duelRebel: { color: '#fca5a5', fontWeight: '800', fontSize: 13 },
   duelHint:  { color: COLORS.textDim, fontSize: 10 },
 
-  messageBox: {
-    backgroundColor: '#1e293bb3', borderRadius: 8, padding: 8,
-    marginBottom: 8, minHeight: 36, justifyContent: 'center',
+  battlefield: {
+    flex: 1, marginBottom: 8,
+    marginHorizontal: -8,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  messageText: { color: '#fde68a', textAlign: 'center', fontSize: 12, fontWeight: '600' },
+  battlefieldInner: { flex: 1, justifyContent: 'space-between' },
 
-  topOpponentRow: { alignItems: 'center', marginBottom: 6 },
+  zoneStrips: { flex: 1, flexDirection: 'row' },
+  zoneStripCol: { flex: 1, alignItems: 'center', padding: 6 },
+  zoneStripColBottomMini: { marginTop: 'auto' },
 
-  fieldRow: { flex: 1, flexDirection: 'row', gap: 4, marginBottom: 8 },
-  sideMini: { width: 48 },
-  field: { flex: 1, borderRadius: 14, overflow: 'hidden', backgroundColor: COLORS.bgDark },
-  fieldInner: { flex: 1, padding: 8, justifyContent: 'space-between' },
+  kingHalf: {
+    flex: 1, padding: 6,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  kingMiniWrap: { marginBottom: 6 },
+  kingAttackRow: {
+    flexDirection: 'row', gap: 6,
+    alignSelf: 'stretch',
+  },
 
-  section: { width: '100%' },
-  sectionLabelKing:  { textAlign: 'center', color: '#fde047', fontWeight: '800', fontSize: 11, marginVertical: 4 },
-  sectionLabelRebel: { textAlign: 'center', color: '#fca5a5', fontWeight: '800', fontSize: 11, marginVertical: 4 },
-
-  laneGrid: { flexDirection: 'row', gap: 6 },
   lane: {
     flex: 1, minHeight: 110,
-    backgroundColor: '#0f172ab3', borderRadius: 10, borderWidth: 2,
     padding: 6, flexDirection: 'column', alignItems: 'stretch',
+    borderRadius: 10,
   },
-  laneHot: { borderColor: '#facc15' },
+  laneHot: { borderWidth: 2, borderColor: '#facc15' },
+  laneOutcomeKing:  { borderWidth: 2, borderColor: '#facc15' },
+  laneOutcomeRebel: { borderWidth: 2, borderColor: '#f87171' },
+  laneOutcomeDraw:  { borderWidth: 2, borderColor: '#c084fc' },
   laneContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   lanePlaceholder: {
     width: 50, height: 76, borderRadius: 8, borderWidth: 2,
@@ -563,8 +531,6 @@ const styles = StyleSheet.create({
   lanePlaceholderHint:   { borderColor: '#64748b' },
   lanePlaceholderText: { color: COLORS.textDim, fontSize: 14, fontWeight: '700' },
 
-  rebelName: { textAlign: 'center', fontSize: 10, fontWeight: '800', marginBottom: 4 },
-
   vsRow: { flexDirection: 'row', gap: 6, paddingVertical: 4 },
   vsText: { flex: 1, textAlign: 'center', fontWeight: '800', fontSize: 11 },
 
@@ -573,9 +539,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     marginBottom: 6, flexWrap: 'wrap',
   },
+  headerEndTurn: { marginLeft: 'auto' },
   handLabel: { color: COLORS.textMuted, fontSize: 11 },
   handSelected: { color: '#fde047', fontSize: 11, fontWeight: '700' },
-  waitingHint: { color: COLORS.textDim, fontSize: 11, marginLeft: 'auto' },
+  waitingHint: { color: COLORS.textDim, fontSize: 11 },
 
   gameoverPanel: { alignItems: 'center', paddingTop: 16 },
   restartBtn: {

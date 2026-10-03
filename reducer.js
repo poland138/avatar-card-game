@@ -14,7 +14,7 @@ import {
 
 export const initialState = { ...baseInitialState, skirmish: null };
 
-function getCardsWonBy(discardPile, playerIdx) {
+export function getCardsWonBy(discardPile, playerIdx) {
   const byTrick = {};
   for (const entry of discardPile) {
     if (entry.phase !== 'FFA' && entry.phase !== 'Skirmish') continue;
@@ -174,7 +174,7 @@ export function gameReducer(state, action) {
       const isKingHuman = state.kingIdx === 0;
       const humanLaneIdx = state.rebelOrder.indexOf(0);
       const message = humanLaneIdx >= 0
-        ? `King attacked! Choose your defense card. King's attack on you: ${ELEMENTS[cardsByLane[humanLaneIdx].suit].symbol} ${rankLabel(cardsByLane[humanLaneIdx].rank)}`
+        ? `King attacked! Choose your defense card. King's attack on you: ${ELEMENTS[cardsByLane[humanLaneIdx].suit].name} ${rankLabel(cardsByLane[humanLaneIdx].rank)}`
         : 'Rebels are choosing defenses simultaneously...';
       return {
         ...state,
@@ -257,8 +257,8 @@ export function gameReducer(state, action) {
         rebellion: state.duelWins.rebellion + (duelWinner === 'rebellion' ? 1 : 0),
       };
       const message = duelWinner === 'draw'
-        ? `Duel ${state.duelNumber}: ⚖️ Draw! ${kw}-${rw}, no winner.`
-        : `Duel ${state.duelNumber}: ${duelWinner === 'king' ? '👑 King' : '⚔️ Rebellion'} wins ${duelWinner === 'king' ? kw : rw}-${duelWinner === 'king' ? rw : kw}!`;
+        ? `Duel ${state.duelNumber}: Draw! ${kw}-${rw}, no winner.`
+        : `Duel ${state.duelNumber}: ${duelWinner === 'king' ? 'King' : 'Rebellion'} wins ${duelWinner === 'king' ? kw : rw}-${duelWinner === 'king' ? rw : kw}!`;
       return {
         ...state,
         laneOutcomes: outcomes,
@@ -310,7 +310,7 @@ export function gameReducer(state, action) {
               kingIdx: newKing,
               kingStreak: 0,
               phase: 'score',
-              message: `👑 ${kingName} crowned King via skirmish! Preparing the Rebellion...`,
+              message: `${kingName} crowned King via skirmish! Preparing the Rebellion...`,
               nextTransition: { type: 'DEAL_REBELLION', kingIdx: newKing },
             };
           }
@@ -331,7 +331,7 @@ export function gameReducer(state, action) {
             kingIdx: newKing,
             kingStreak: 0,
             phase: 'score',
-            message: `👑 ${kingName} crowned King with ${maxWins} tricks! Preparing the Rebellion...`,
+            message: `${kingName} crowned King with ${maxWins} tricks! Preparing the Rebellion...`,
             nextTransition: { type: 'DEAL_REBELLION', kingIdx: newKing },
           };
         }
@@ -370,7 +370,7 @@ export function gameReducer(state, action) {
             xp: newXp,
             kingStreak: state.kingStreak + 1,
             phase: 'score',
-            message: `👑 ${kingName} the hill${multBadge}! ${newDuelWins.king} duels won, +${pointsEarned} pts, +${xpEarned} XP!`,
+            message: `${kingName} the hill${multBadge}! ${newDuelWins.king} duels won, +${pointsEarned} pts, +${xpEarned} XP!`,
             nextTransition: ended ? { type: 'GAME_OVER' } : { type: 'DEAL_REBELLION', kingIdx: state.kingIdx },
           };
         }
@@ -382,7 +382,7 @@ export function gameReducer(state, action) {
             ...cleared,
             kingStreak: 0,
             phase: 'score',
-            message: `⚔️ ${kingName} overthrown! Rebellion wins ${newDuelWins.rebellion}-${newDuelWins.king}. No points.`,
+            message: `${kingName} overthrown! Rebellion wins ${newDuelWins.rebellion}-${newDuelWins.king}. No points.`,
             nextTransition: ended ? { type: 'GAME_OVER' } : { type: 'DEAL_FFA' },
           };
         }
@@ -422,7 +422,7 @@ export function gameReducer(state, action) {
         skirmish: null,
         phase: 'rebellion',
         nextTransition: null,
-        message: `👑 ${kingDisplayName(state, action.kingIdx)} King!${streakLine} 7 duels — King attacks 3 lanes per duel.`,
+        message: `${kingDisplayName(state, action.kingIdx)} King!${streakLine} 7 duels — King attacks 3 lanes per duel.`,
       };
     }
 
@@ -455,7 +455,7 @@ export function gameReducer(state, action) {
         ...state,
         phase: 'gameover',
         nextTransition: null,
-        message: `🏆 ${winnerName} the war with ${state.scores[winnerIdx]} points!`,
+        message: `${winnerName} the war with ${state.scores[winnerIdx]} points!`,
         xp: elemKey ? { ...state.xp, [elemKey]: state.xp[elemKey] + XP_PER_RUN } : state.xp,
       };
     }
@@ -514,7 +514,7 @@ export function gameReducer(state, action) {
         pendingResolution: null,
         pendingAckReveal: false,
         nextTransition: null,
-        message: `🏆 You win the war with ${TARGET_SCORE} points! (debug)`,
+        message: `You win the war with ${TARGET_SCORE} points! (debug)`,
         xp: elemKey ? { ...state.xp, [elemKey]: state.xp[elemKey] + XP_PER_RUN } : state.xp,
       };
     }

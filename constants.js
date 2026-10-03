@@ -1,24 +1,23 @@
 // On RN, we can't use Tailwind class strings. Each element carries the hex
-// colors directly so styles can pull from here. We use the emoji symbols as
-// "icons" for now — avoids an extra dependency.
+// colors directly so styles can pull from here. Icons live in elementIcons.js.
 export const ELEMENTS = {
   water: {
-    name: 'Water', symbol: '💧',
+    name: 'Water',
     flavor: 'Adaptive defender. Strong counter-attacks.',
     bg: '#2563eb', text: '#93c5fd', border: '#60a5fa',
   },
   fire: {
-    name: 'Fire', symbol: '🔥',
+    name: 'Fire',
     flavor: 'Aggressive attacker. Burns hot and fast.',
     bg: '#dc2626', text: '#fca5a5', border: '#f87171',
   },
   earth: {
-    name: 'Earth', symbol: '🪨',
+    name: 'Earth',
     flavor: 'Stalwart defender. Patient and unyielding.',
     bg: '#15803d', text: '#86efac', border: '#4ade80',
   },
   air: {
-    name: 'Air', symbol: '💨',
+    name: 'Air',
     flavor: 'Evasive trickster. Disrupts and outmaneuvers.',
     bg: '#eab308', text: '#fef08a', border: '#fde047',
   },
