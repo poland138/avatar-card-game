@@ -1,11 +1,56 @@
-# Sample Snack app
+# Avatar Card Game
 
-Open the `App.js` file to start writing some code. You can preview the changes directly on your phone or tablet by scanning the **QR code** or use the iOS or Android emulators. When you're done, click **Save** and share the link!
+An elemental twist on Hearts. Four benders (Water, Fire, Earth, Air) battle in a
+free-for-all to become King, then the other three rebel. First to 21 points wins the war.
 
-When you're ready to see everything that Expo provides (or if you want to use your own editor) you can **Download** your project and use it with [expo cli](https://docs.expo.dev/get-started/installation/#expo-cli)).
+**Play in your browser:** https://poland138.github.io/avatar-card-game/
 
-All projects created in Snack are publicly available, so you can easily share the link to this project via link, or embed it on a web page with the `<>` button.
+## Project layout
 
-If you're having problems, you can tweet to us [@expo](https://twitter.com/expo) or ask in our [forums](https://forums.expo.dev/c/expo-dev-tools/61) or [Discord](https://chat.expo.dev/).
+| Folder | What it is |
+|---|---|
+| `core/` | Game rules, AI, deck and the reducer. Plain JavaScript shared by both apps. |
+| `web/` | Browser version: React + three.js (React Three Fiber) + Vite. Deployed to GitHub Pages. |
+| repo root | Original Expo / React Native mobile app. |
 
-Snack is Open Source. You can find the code on the [GitHub repo](https://github.com/expo/snack).
+## Making changes and testing them in the browser
+
+1. Make changes on a branch and open a pull request. Claude Code on the web does this for you.
+2. Within about 3 minutes, a bot comments on the PR with a **preview link**
+   (`…/avatar-card-game/pr-preview/pr-<number>/`). Play-test there.
+3. Merge the PR. About 3 minutes later the live site updates. If you still see
+   the old version, hard-refresh (Ctrl+Shift+R).
+
+Every push runs all tests. The live site only updates when they pass.
+
+## Run the browser version locally
+
+```bash
+cd web
+npm install
+npm run dev        # http://localhost:5173/
+```
+
+Add `?debug` to the URL, or press the backtick key, for developer tools.
+
+## Tests
+
+```bash
+npx jest                        # core logic (repo root, after npm install there)
+cd web && npm test              # layout + button logic (Vitest)
+cd web && npx playwright test   # real-browser tests at desktop + two phone sizes
+cd web && npm run shot          # screenshots of key screens (needs npm run dev running)
+```
+
+## Run the mobile (Expo) version
+
+```bash
+npm install
+npm start
+```
+
+## Disclaimer
+
+A non-commercial fan project. *Avatar: The Last Airbender* and related names
+belong to Nickelodeon / Paramount; this project is not affiliated with or
+endorsed by them.

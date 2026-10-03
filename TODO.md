@@ -14,8 +14,8 @@ Running list of things still to implement, polish, or revisit. Items get added h
 
 ## Infra
 
-- [ ] Initialize git repo (`git init`, first commit) and pick a remote (GitHub).
-- [ ] Decide on a release/build flow when ready: EAS Build for native binaries, or stay web-only via `npm run web`.
+- [ ] Web: persist XP in `localStorage` (the browser twin of the AsyncStorage TODO above).
+- [ ] Decide on native release flow (EAS Build) when the Expo app is ready; the web build already deploys to GitHub Pages on every push to main.
 
 ## Open questions
 

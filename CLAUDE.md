@@ -4,20 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-This is an Expo / React Native project. All commands run from the `avatar-card-game/` directory.
+Repo root (Expo app + shared logic):
 
-- `npm install` — install dependencies
-- `npm start` — launch Expo dev server (QR code for Expo Go on device)
-- `npm run android` / `npm run ios` / `npm run web` — start on a specific target
-- `npm test` — run Jest tests (preset: `jest-expo`)
-- `npm run test:watch` — Jest in watch mode
-- Run a single test file: `npx jest __tests__/rules.test.js`
-- Run tests matching a name: `npx jest -t "highest rank wins"`
+- `npm install`, then `npm start` / `npm run android` / `npm run ios` for the Expo app
+- `npx jest` — core logic tests (`__tests__/`, preset `jest-expo`; `web/` is ignored)
+- Single file: `npx jest __tests__/rules.test.js`; by name: `npx jest -t "highest rank wins"`
+- `metro.config.js` blocks `web/` so Metro never crawls the web app's node_modules.
 - No linter or typecheck script is configured.
 
-Origin: `https://github.com/poland138/avatar-card-game.git` (main branch).
+Browser game (`cd web`):
 
-The project was originally a Snack (web-based Expo playground). It has no `node_modules/`, `.expo/`, or generated `ios/`/`android/` folders yet — first action in a fresh clone is `npm install`.
+- `npm install`, `npm run dev` — http://localhost:5173/ (`?debug` or backtick = dev tools)
+- `npm test` — Vitest unit tests for `src/lib/*`
+- `npx playwright test` — browser tests at 1280×720, 390×844 and 390×664 (builds + previews automatically)
+- `npm run shot` — screenshots of key screens into `web/screenshots/` (needs `npm run dev` running; pass a URL to shoot the live site). Use this to check visual changes.
+- `npm run build` — production build into `web/dist/` (relative `base: './'`)
+
+CI (`.github/workflows/web.yml`): every push and PR runs Jest + Vitest + Playwright.
+`main` deploys to https://poland138.github.io/avatar-card-game/ (gh-pages branch root).
+Same-repo PRs get a preview at `…/pr-preview/pr-<N>/`, posted as a PR comment.
+
+Origin: `https://github.com/poland138/avatar-card-game.git` (public, main branch, 0BSD license).
 
 ## Architecture
 
@@ -35,12 +42,15 @@ If you need to add a new async/animated transition, follow the same pattern: red
 
 ### Game logic split
 
-- `constants.js` — elements, suits, colors, targets, XP, upgrade stubs
-- `deck.js` — 52-card deck, shuffle, sort, rank labels
-- `rules.js` — `simultaneousWinner` (FFA trick resolution with trump rule) and `resolveLane` (Rebellion king-vs-rebel lane resolution)
-- `ai.js` — three AI policies: `aiPlayFFASimultaneous`, `aiKingPlay`, `aiRebelPlay`
-- `reducer.js` — orchestration of all actions; also contains an inline `buildSkirmishState` + `getCardsWonBy`
-- `reducerHelpers.js` — `initialState`, player factory, deal functions, XP constants
+All shared logic lives in `core/` and must not import React, React Native or browser APIs:
+
+- `core/constants.js` — elements, suits, colors, targets, XP, upgrade stubs
+- `core/deck.js` — 52-card deck, shuffle, sort, rank labels
+- `core/rules.js` — `resolveTrick` (FFA, returns `{ winner, reason }`), `resolveLaneDetailed` (Rebellion, returns `{ result, reason }`), and the thin wrappers `simultaneousWinner` / `resolveLane`
+- `core/ai.js` — three AI policies: `aiPlayFFASimultaneous`, `aiKingPlay`, `aiRebelPlay`
+- `core/reducer.js` — orchestration of all actions; also contains an inline `buildSkirmishState` + `getCardsWonBy`. `state.lastRebellion` records the last rebellion result for the UI and is cleared on the next deal. `COMMIT_FFA_TURN` ignores repeats while a trick is shown.
+- `core/reducerHelpers.js` — `initialState`, player factory, deal functions, XP constants
+- `core/turnInfo.js` — `getStatus` (banner text), `explainTrick` / `explainLane` / `explainDuel` ("why it won"), `getPhaseIntro` (phase intro cards)
 - Skirmish logic lives inline in `reducer.js` (`buildSkirmishState`, `getCardsWonBy`) — tied players replay a mini FFA with the cards they won. There used to be an alternative war-style implementation in `skirmish.js`/`SkirmishView.js`; those were deleted as stale.
 
 ### Phase semantics
@@ -61,6 +71,14 @@ Styling uses inline `StyleSheet.create` per file and the shared `COLORS` palette
 
 `FreeForAllView` and `RebellionView` are ~20KB each and contain debug shortcuts (`onSkipToFFAEnd`, `onSkipToGameOver`, `onReturnToFFA`) that the reducer accepts as actions. Keep these — they're development affordances, not dead code.
 
+### Web app (`web/`)
+
+- `src/App.jsx` — same reducer + timer-effect pattern as the Expo `App.js`, plus an intro queue fed by `getPhaseIntro`, lifted modal state, and auto-play for skirmishes the human sits out. AI timers pause while an intro or modal is open.
+- `src/lib/cardLayout.js` — pure `layoutTable(state, tableGeometry(w, h, handCount), ui)` decides where every card, slot and badge goes (pixels, origin at canvas center). Card size is solved from the table height; long hands use two rows. All table positioning changes go here; its tests assert nothing overlaps from 374×200 up.
+- `src/lib/primaryAction.js` — the single action button's label, enabled state and action.
+- `src/scene/` — three.js via React Three Fiber. Orthographic camera, 1 unit = 1 CSS pixel, `frameloop="demand"`; `Card3D` animates toward its layout target and calls `invalidate()` until settled.
+- `src/hud/` — HTML overlay. `styles.css` uses a CSS grid where each `[data-region]` owns an area; the Playwright layout test fails if any two regions overlap or the table drops below 240px. The dev panel is a collapsible bar below the grid.
+
 ## Working in this codebase
 
 ### Token management and scope
@@ -78,9 +96,9 @@ Ask the user before:
 
 - Deleting or rewriting `skirmish.js` / `SkirmishView.js` (orphaned — intent unclear)
 - Replacing `xpCache` with AsyncStorage persistence (touches save/load semantics)
-- Adding TypeScript, a linter, or tests (none exist; introducing them is a project-level decision)
+- Adding TypeScript or a linter (project-level decision)
 - Renaming actions, phases, or `state.*` fields (cascades across views and reducer)
-- Adding dependencies — the project deliberately runs on a small Expo stack
+- Adding dependencies to either the Expo app or `web/` — both deliberately run on small stacks
 
 Act without asking for:
 
@@ -101,6 +119,14 @@ Act without asking for:
 Tests live in `__tests__/` and target **pure logic only** — `deck`, `rules`, `ai`, and reducer transitions. There are no UI/component tests yet; React Native Testing Library can be added later if visual regressions become an issue, but logic is where game bugs hide.
 
 When adding a new rule, AI policy, or reducer action, add or extend a test in the matching file. Keep tests deterministic — the AI and deck modules use `Math.random()`, so either assert membership/length properties (as `ai.test.js` does) or mock `Math.random` for a single test, never both in the same case.
+
+Web: pure helpers in `web/src/lib` get Vitest tests next to them. UI behavior is covered by Playwright in `web/tests/`. When changing layout, run `npx playwright test` and `npm run shot` and look at the screenshots.
+
+### Working from Claude Code on the web
+
+- Work on a branch and open a PR. CI posts a preview link on the PR; merging to `main` updates the live site.
+- `npx jest` and `cd web && npm test` need no browser — always run them.
+- If the sandbox can't download Playwright's Chromium, skip `npx playwright test` / `npm run shot` locally and rely on the PR's CI run (screenshots are in the `playwright-results` artifact) and the preview link.
 
 ### Things that look broken but aren't
 
