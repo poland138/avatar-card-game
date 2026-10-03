@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, Modal, ScrollView, Dimensions, StyleSheet } from 'react-native';
 import { Crown, Trash2 } from 'lucide-react-native';
-import { ELEMENTS, SUITS, COLORS } from './constants';
+import { ELEMENTS, SUITS, COLORS } from './core/constants';
 import { ElementIcon } from './elementIcons';
-import { rankLabel } from './deck';
+import { rankLabel } from './core/deck';
 import { SAFE_TOP, SAFE_BOTTOM } from './safeArea';
 
 const { height: SCREEN_H } = Dimensions.get('window');

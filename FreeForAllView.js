@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, TextInput, Modal, StyleSheet } from 'react-native';
 import { Trophy, Star, Swords, Bug, Eye, EyeOff, Gem } from 'lucide-react-native';
-import { ELEMENTS, SUITS, COLORS } from './constants';
+import { ELEMENTS, SUITS, COLORS } from './core/constants';
 import { ElementIcon } from './elementIcons';
-import { rankLabel } from './deck';
+import { rankLabel } from './core/deck';
 import { SAFE_TOP, SAFE_BOTTOM } from './safeArea';
 import CardDisplay from './CardDisplay';
 import MiniHand from './MiniHand';
@@ -12,7 +12,7 @@ import DiscardPile from './DiscardPile';
 import HintButton from './HintButton';
 import EndTurnButton from './EndTurnButton';
 import HandFan from './HandFan';
-import { getCardsWonBy } from './reducer';
+import { getCardsWonBy } from './core/reducer';
 
 const TOTAL_TRICKS = 13;
 

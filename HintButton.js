@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, Modal, ScrollView, StyleSheet } from 'react-native';
 import { Crown, Swords, Scale, HelpCircle, Spade, Lightbulb } from 'lucide-react-native';
-import { TARGET_SCORE, COLORS } from './constants';
+import { TARGET_SCORE, COLORS } from './core/constants';
 import { SAFE_TOP, SAFE_BOTTOM } from './safeArea';
 
 // Inline button + modal. Parent positions the button via the surrounding

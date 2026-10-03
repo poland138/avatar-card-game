@@ -1,4 +1,4 @@
-import { aiPlayFFASimultaneous, aiKingPlay, aiRebelPlay } from '../ai';
+import { aiPlayFFASimultaneous, aiKingPlay, aiRebelPlay } from '../core/ai';
 
 describe('aiPlayFFASimultaneous', () => {
   test('always returns a card from the hand', () => {

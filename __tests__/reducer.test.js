@@ -1,4 +1,4 @@
-import { gameReducer, initialState } from '../reducer';
+import { gameReducer, initialState } from '../core/reducer';
 
 describe('gameReducer — basic flow', () => {
   test('initial phase is element-select', () => {

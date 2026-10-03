@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { ELEMENTS, SUITS, COLORS } from './constants';
+import { ELEMENTS, SUITS, COLORS } from './core/constants';
 import { ELEMENT_ICONS } from './elementIcons';
 import { SAFE_TOP, SAFE_BOTTOM } from './safeArea';
 

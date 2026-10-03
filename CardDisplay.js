@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { ELEMENTS } from './constants';
+import { ELEMENTS } from './core/constants';
 import { ElementIcon } from './elementIcons';
-import { rankLabel } from './deck';
+import { rankLabel } from './core/deck';
 
 export default function CardDisplay({ card, small = false, dim = false, highlighted = false }) {
   const elem = ELEMENTS[card.suit];

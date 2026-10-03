@@ -1,4 +1,4 @@
-import { simultaneousWinner, resolveLane } from '../rules';
+import { simultaneousWinner, resolveLane } from '../core/rules';
 
 const players = [
   { element: 'water' },

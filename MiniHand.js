@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { ELEMENTS, SUITS, COLORS } from './constants';
-import { rankLabel } from './deck';
+import { ELEMENTS, SUITS, COLORS } from './core/constants';
+import { rankLabel } from './core/deck';
 
 export default function MiniHand({
   player,

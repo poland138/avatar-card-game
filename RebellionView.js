@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { ELEMENTS, COLORS } from './constants';
-import { rankLabel } from './deck';
+import { ELEMENTS, COLORS } from './core/constants';
+import { rankLabel } from './core/deck';
 import { SAFE_TOP, SAFE_BOTTOM } from './safeArea';
 import CardDisplay from './CardDisplay';
 import MiniHand from './MiniHand';

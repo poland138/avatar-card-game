@@ -1,5 +1,5 @@
-import { createDeck, rankLabel, sortHand } from '../deck';
-import { SUITS } from '../constants';
+import { createDeck, rankLabel, sortHand } from '../core/deck';
+import { SUITS } from '../core/constants';
 
 describe('createDeck', () => {
   test('produces 52 unique cards', () => {

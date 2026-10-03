@@ -1,9 +1,9 @@
 import React, { useReducer, useEffect, useState } from 'react';
 import { View, StatusBar } from 'react-native';
 
-import { gameReducer, initialState } from './reducer';
-import { ZERO_XP } from './constants';
-import { aiPlayFFASimultaneous, aiKingPlay } from './ai';
+import { gameReducer, initialState } from './core/reducer';
+import { ZERO_XP } from './core/constants';
+import { aiPlayFFASimultaneous, aiKingPlay } from './core/ai';
 import ElementSelectView from './ElementSelectView';
 import UpgradeView from './UpgradeView';
 import FreeForAllView from './FreeForAllView';

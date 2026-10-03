@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { ELEMENTS } from './constants';
+import { ELEMENTS } from './core/constants';
 
 const NEUTRAL = '#1e293b';
 

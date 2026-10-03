@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { Sparkles, Lock } from 'lucide-react-native';
-import { ELEMENTS, UPGRADE_STUBS, COLORS } from './constants';
+import { ELEMENTS, UPGRADE_STUBS, COLORS } from './core/constants';
 import { ElementIcon } from './elementIcons';
 import { SAFE_TOP, SAFE_BOTTOM } from './safeArea';
 
