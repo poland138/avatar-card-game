@@ -63,18 +63,21 @@ avatar-card-game/                 repo root
   It covers every phase and sub-stage: picking, revealed/awaiting Continue,
   skirmish (and whether the human sits out), king choosing (human or AI),
   rebels responding, resolving, game over.
-- `explainTrick(plays, players, winnerIdx)` → one-sentence reason, mirroring the
-  branches of `simultaneousWinner`:
-  only trump / highest trump / no trumps so highest rank / rank tie broken by
-  defender element / rank tie broken by own element / random tiebreak.
-- `explainLane(kingCard, rebelCard, kingElement, rebelElement, outcome)` → one
-  sentence per lane, mirroring the branches of `resolveLane`.
+- `explainTrick(trick, players)` → one-sentence reason. `rules.js` gains
+  `resolveTrick(plays, players)` → `{ winner, reason }` (`simultaneousWinner`
+  becomes a thin wrapper), and the reducer stores `reason` on `revealedTrick`.
+  Reasons: only trump / highest trump / no trumps so highest rank / rank tie
+  broken by defender element / tied trumps go to the earlier seat / random tiebreak.
+- `explainLane({ kingCard, rebelCard, kingElement, rebelElement, kingName, rebelName })`
+  → `{ result, text }`, built on a new `resolveLaneDetailed` in `rules.js`
+  (`resolveLane` becomes a thin wrapper). `explainDuel(state)` maps it over all 3 lanes.
 - `getPhaseIntro(prevState, state)` → `null` or `{ kind, title, body, rule }` when a
-  phase boundary is crossed: FFA start, skirmish start (with who's tied and
-  why), king crowned, rebellion start (human's role and lane), game over.
+  phase boundary is crossed: FFA start (or "King overthrown"), skirmish start
+  (with who's tied and why), rebellion start (King crowned or crown held, the
+  human's role and lane, streak multiplier). Game over is its own screen.
 
-`explainTrick` must agree with `simultaneousWinner` for every case. The tests
-assert this directly by running both on the same inputs.
+Because each reason comes from the same function that picks the winner, an
+explanation can never disagree with the actual result.
 
 ### web/src/scene (three.js)
 
@@ -87,7 +90,8 @@ assert this directly by running both on the same inputs.
   King card on top, rebel card below, result badge between them.
 - `PlayerHand`: the human's fan. Card spacing is computed from available width
   so it never overflows. Hover/tap selects, and the selected card lifts.
-- Opponent hands render as small face-down stacks with a count. Face-up only in dev mode.
+- Opponent hands are not drawn on the table. Their card counts live in the HTML
+  opponent plates; in dev mode the plates list the cards face-up.
 - Animation uses a small tween helper driven by `useFrame` (no physics engine).
 
 ### web/src/hud (HTML/CSS)
@@ -149,8 +153,8 @@ outcomes. Animations are visual only; the reducer state is the source of truth.
 
 - **Unit (Jest, repo root):** all existing core tests pass after the move.
   New `turnInfo.test.js` covers `getStatus` for each phase and stage,
-  `explainTrick` agreeing with `simultaneousWinner` (including tie-break
-  branches, with `Math.random` mocked for the random branch), `explainLane` for
+  `explainTrick` for every `resolveTrick` reason (with `Math.random` mocked for
+  the random branch), `explainDuel` agreeing with the reducer's `laneOutcomes`, `explainLane` for
   every row of the lane table, and `getPhaseIntro` transitions.
 - **Browser (Playwright, `web/tests`):**
   - Smoke: load the page, pick an element, start, select a card, press Play,
