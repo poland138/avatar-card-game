@@ -35,6 +35,7 @@ export const initialState = {
   nextTransition: null,
   animating: false,
   xp: ZERO_XP,
+  lastRebellion: null,
 };
 
 function shuffleInPlace(arr) {

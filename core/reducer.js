@@ -1,6 +1,6 @@
 import { ELEMENTS, TARGET_SCORE, REBELLION_DUELS, XP_PER_RUN } from './constants';
 import { rankLabel, sortHand } from './deck';
-import { simultaneousWinner, resolveLane } from './rules';
+import { resolveTrick, resolveLane } from './rules';
 import { aiPlayFFASimultaneous, aiRebelPlay } from './ai';
 import {
   XP_PER_KING_WIN,
@@ -90,6 +90,7 @@ export function gameReducer(state, action) {
         discardPile: [],
         skirmish: null,
         phase: 'freeforall',
+        lastRebellion: null,
         message: 'Free-for-all! Tap a card to select, then End Turn to reveal.',
       };
     }
@@ -104,6 +105,7 @@ export function gameReducer(state, action) {
       return { ...state, humanFFAPick: action.card };
 
     case 'COMMIT_FFA_TURN': {
+      if (state.revealedTrick || state.waitingForContinue) return state;
       const humanCard = state.humanFFAPick;
       const isHumanActive = state.skirmish ? state.skirmish.participants.includes(0) : true;
       if (isHumanActive && !humanCard) return state;
@@ -125,7 +127,7 @@ export function gameReducer(state, action) {
       if (isHumanActive) allPlays.push({ playerIdx: 0, card: humanCard });
       allPlays.push(...aiPicks);
 
-      const winnerIdx = simultaneousWinner(allPlays, newPlayers);
+      const { winner: winnerIdx, reason } = resolveTrick(allPlays, newPlayers);
       const phaseLabel = state.skirmish ? 'Skirmish' : 'FFA';
       const trickLabel = state.skirmish
         ? `S${state.skirmish.recursionLevel + 1}T${state.trickNumber}`
@@ -146,7 +148,7 @@ export function gameReducer(state, action) {
         trickWins: newWins,
         humanFFAPick: null,
         committedFFAPick: humanCard || aiPicks[0]?.card || null,
-        revealedTrick: { plays: allPlays, winner: winnerIdx },
+        revealedTrick: { plays: allPlays, winner: winnerIdx, reason },
         discardPile: [...state.discardPile, ...newDiscards],
         animating: true,
         pendingAckReveal: true,
@@ -369,6 +371,7 @@ export function gameReducer(state, action) {
             scores: newScores,
             xp: newXp,
             kingStreak: state.kingStreak + 1,
+            lastRebellion: { kingIdx: state.kingIdx, held: true, duels: newDuelWins, points: pointsEarned, xp: xpEarned },
             phase: 'score',
             message: `${kingName} the hill${multBadge}! ${newDuelWins.king} duels won, +${pointsEarned} pts, +${xpEarned} XP!`,
             nextTransition: ended ? { type: 'GAME_OVER' } : { type: 'DEAL_REBELLION', kingIdx: state.kingIdx },
@@ -381,6 +384,7 @@ export function gameReducer(state, action) {
           return {
             ...cleared,
             kingStreak: 0,
+            lastRebellion: { kingIdx: state.kingIdx, held: false, duels: newDuelWins, points: 0, xp: 0 },
             phase: 'score',
             message: `${kingName} overthrown! Rebellion wins ${newDuelWins.rebellion}-${newDuelWins.king}. No points.`,
             nextTransition: ended ? { type: 'GAME_OVER' } : { type: 'DEAL_FFA' },
@@ -422,6 +426,7 @@ export function gameReducer(state, action) {
         skirmish: null,
         phase: 'rebellion',
         nextTransition: null,
+        lastRebellion: null,
         message: `${kingDisplayName(state, action.kingIdx)} King!${streakLine} 7 duels — King attacks 3 lanes per duel.`,
       };
     }
@@ -443,6 +448,7 @@ export function gameReducer(state, action) {
         skirmish: null,
         phase: 'freeforall',
         nextTransition: null,
+        lastRebellion: null,
         message: 'New free-for-all round! Element cards trump non-elements.',
       };
     }
@@ -496,6 +502,7 @@ export function gameReducer(state, action) {
         pendingAckReveal: false,
         waitingForContinue: true,
         pendingResolution: { type: 'POST_FFA_TRICK' },
+        lastRebellion: null,
         message: 'Debug: FFA simulated. Tap Continue to crown / skirmish.',
       };
     }
@@ -514,6 +521,7 @@ export function gameReducer(state, action) {
         pendingResolution: null,
         pendingAckReveal: false,
         nextTransition: null,
+        lastRebellion: null,
         message: `You win the war with ${TARGET_SCORE} points! (debug)`,
         xp: elemKey ? { ...state.xp, [elemKey]: state.xp[elemKey] + XP_PER_RUN } : state.xp,
       };
@@ -540,6 +548,7 @@ export function gameReducer(state, action) {
         pendingResolution: null,
         pendingAckReveal: false,
         nextTransition: null,
+        lastRebellion: null,
         message: 'New free-for-all round (debug bail from rebellion). No points awarded.',
       };
     }

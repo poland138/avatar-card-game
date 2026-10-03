@@ -125,3 +125,63 @@ describe('resolveLane', () => {
     ).toBe('draw');
   });
 });
+
+import { resolveTrick, resolveLaneDetailed } from '../core/rules';
+
+describe('resolveTrick reasons', () => {
+  test('only-trump', () => {
+    const plays = [play(0, 'water', 5), play(1, 'earth', 14), play(2, 'air', 13), play(3, 'fire', 12)];
+    expect(resolveTrick(plays, players)).toEqual({ winner: 0, reason: 'only-trump' });
+  });
+
+  test('highest-trump', () => {
+    const plays = [play(0, 'water', 5), play(1, 'fire', 9), play(2, 'air', 13), play(3, 'fire', 12)];
+    expect(resolveTrick(plays, players)).toEqual({ winner: 1, reason: 'highest-trump' });
+  });
+
+  test('highest-rank when nobody trumps', () => {
+    const plays = [play(0, 'fire', 3), play(1, 'air', 10), play(2, 'water', 7), play(3, 'earth', 2)];
+    expect(resolveTrick(plays, players)).toEqual({ winner: 1, reason: 'highest-rank' });
+  });
+
+  test('tie-defender', () => {
+    const plays = [play(0, 'fire', 10), play(1, 'water', 10), play(2, 'air', 2), play(3, 'water', 3)];
+    expect(resolveTrick(plays, players)).toEqual({ winner: 1, reason: 'tie-defender' });
+  });
+
+  test('tie-first-trump', () => {
+    const plays = [play(0, 'water', 9), play(1, 'fire', 9), play(2, 'water', 2), play(3, 'fire', 3)];
+    expect(resolveTrick(plays, players)).toEqual({ winner: 0, reason: 'tie-first-trump' });
+  });
+
+  test('tie-random', () => {
+    const spy = jest.spyOn(Math, 'random').mockReturnValue(0);
+    const plays = [play(0, 'earth', 8), play(1, 'air', 8), play(2, 'fire', 2), play(3, 'earth', 3)];
+    expect(resolveTrick(plays, players)).toEqual({ winner: 0, reason: 'tie-random' });
+    spy.mockRestore();
+  });
+
+  test('simultaneousWinner returns the same winner', () => {
+    const plays = [play(0, 'water', 5), play(1, 'fire', 9), play(2, 'air', 13), play(3, 'fire', 12)];
+    expect(simultaneousWinner(plays, players)).toBe(resolveTrick(plays, players).winner);
+  });
+});
+
+describe('resolveLaneDetailed reasons', () => {
+  const k = (suit, rank) => ({ suit, rank, id: `${suit}-${rank}` });
+  const cases = [
+    ['both-own, rebel higher', k('fire', 10), k('water', 12), { result: 'rebel', reason: 'both-own' }],
+    ['both-own, equal', k('fire', 10), k('water', 10), { result: 'draw', reason: 'both-own' }],
+    ['king-own', k('fire', 2), k('earth', 14), { result: 'king', reason: 'king-own' }],
+    ['rebel-own', k('earth', 14), k('water', 2), { result: 'rebel', reason: 'rebel-own' }],
+    ['higher-rank', k('earth', 9), k('air', 5), { result: 'king', reason: 'higher-rank' }],
+    ['tie-both-enemy', k('water', 7), k('fire', 7), { result: 'draw', reason: 'tie-both-enemy' }],
+    ['tie-king-in-enemy', k('water', 7), k('air', 7), { result: 'rebel', reason: 'tie-king-in-enemy' }],
+    ['tie-rebel-in-enemy', k('earth', 7), k('fire', 7), { result: 'king', reason: 'tie-rebel-in-enemy' }],
+    ['tie', k('earth', 7), k('air', 7), { result: 'draw', reason: 'tie' }],
+  ];
+  test.each(cases)('%s', (_label, kingCard, rebelCard, expected) => {
+    expect(resolveLaneDetailed(kingCard, rebelCard, 'fire', 'water')).toEqual(expected);
+    expect(resolveLane(kingCard, rebelCard, 'fire', 'water')).toBe(expected.result);
+  });
+});
