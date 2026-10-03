@@ -190,7 +190,7 @@ h1, h2, h3, p { margin: 0; }
   background: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 .plate .stats { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.plate .name, .plate .stats-long { display: none; }
+.plate .name, .plate .stats-long, .plate .tag-long { display: none; }
 .plate .peek { display: flex; gap: 2px; overflow-x: auto; }
 .mini-card {
   flex: none; font-size: 11px; padding: 0 3px; border-radius: 3px;
@@ -199,8 +199,8 @@ h1, h2, h3, p { margin: 0; }
 .mini-card.next { outline: 2px solid var(--accent); }
 @media (min-width: 900px) and (min-aspect-ratio: 1/1) {
   .plate { gap: var(--s1); padding: var(--s3); }
-  .plate .name, .plate .stats-long { display: inline; }
-  .plate .short-name, .plate .stats-short { display: none; }
+  .plate .name, .plate .stats-long, .plate .tag-long { display: inline; }
+  .plate .short-name, .plate .stats-short, .plate .tag-short { display: none; }
   .plate .peek { flex-wrap: wrap; overflow: visible; }
 }
 

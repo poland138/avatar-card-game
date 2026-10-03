@@ -2,17 +2,25 @@ import { useEffect, useState } from 'react';
 import { getStatus } from '@core/turnInfo';
 import Table from '../scene/Table';
 import StatusBanner from '../hud/StatusBanner';
+import OpponentPlate from '../hud/OpponentPlate';
+import Scoreboard from '../hud/Scoreboard';
+import Callout, { LaneList } from '../hud/Callout';
 import PrimaryButton from '../hud/PrimaryButton';
 import PhaseIntro from '../hud/PhaseIntro';
+import Modal from '../hud/Modal';
+import RulesModal from '../hud/RulesModal';
+import LogModal from '../hud/LogModal';
+import DevPanel from '../hud/DevPanel';
 import { getPrimaryAction } from '../lib/primaryAction';
 import { getHandState } from '../lib/cardLayout';
 import { hasWebGL } from '../lib/webgl';
 
-export default function GameScreen({ state, dispatch, intro, onDismissIntro, modal }) {
+export default function GameScreen({ state, dispatch, dev, setDev, intro, onDismissIntro, modal, setModal }) {
   const [kingSelection, setKingSelection] = useState(null);
   const ui = { kingSelection };
   const primary = getPrimaryAction(state);
   const blocked = intro !== null || modal !== null;
+  const closeModal = () => setModal(null);
 
   useEffect(() => { setKingSelection(null); }, [state.rebellionStage, state.duelNumber]);
 
@@ -84,7 +92,18 @@ export default function GameScreen({ state, dispatch, intro, onDismissIntro, mod
   return (
     <div className="app-shell">
       <div className="game">
-        <StatusBanner status={getStatus(state)} />
+        <StatusBanner status={getStatus(state)}>
+          <button type="button" className="btn btn-small" onClick={() => setModal('rules')}>Rules</button>
+          <button type="button" className="btn btn-small" onClick={() => setModal('log')}>Log</button>
+        </StatusBanner>
+        <div className="side-left">
+          <Scoreboard state={state} />
+          <OpponentPlate state={state} idx={1} dev={dev} />
+        </div>
+        <OpponentPlate state={state} idx={2} dev={dev} />
+        <div className="side-right">
+          <OpponentPlate state={state} idx={3} dev={dev} />
+        </div>
         {hasWebGL() ? (
           <Table state={state} ui={ui} onCardSelect={onCardSelect} onSlotSelect={onSlotSelect} />
         ) : (
@@ -92,9 +111,18 @@ export default function GameScreen({ state, dispatch, intro, onDismissIntro, mod
             <p>Your browser doesn't support WebGL, which this game needs to draw the cards. Try a recent Chrome, Firefox, Safari or Edge.</p>
           </div>
         )}
+        <Callout state={state} onWhy={() => setModal('why')} />
         <PrimaryButton primary={primary} onPress={runPrimary} />
       </div>
+      {dev.enabled && <DevPanel dev={dev} setDev={setDev} state={state} dispatch={dispatch} />}
       {intro && <PhaseIntro key={`${intro.kind}-${intro.title}`} intro={intro} onClose={onDismissIntro} />}
+      {!intro && modal === 'rules' && <RulesModal onClose={closeModal} />}
+      {!intro && modal === 'log' && <LogModal state={state} onClose={closeModal} />}
+      {!intro && modal === 'why' && state.laneOutcomes.some(Boolean) && (
+        <Modal title={`Duel ${state.duelNumber}`} onClose={closeModal}>
+          <LaneList state={state} />
+        </Modal>
+      )}
     </div>
   );
 }
