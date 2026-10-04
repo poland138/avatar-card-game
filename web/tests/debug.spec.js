@@ -24,30 +24,24 @@ test('skip to rebellion as King, play a duel, layout holds', async ({ page }, te
   await dismissIntro(page, 'You are King!');
   await expectNoOverlap(page);
   await expectTableHeight(page, 240);
+  await expect(page.locator('.tally')).toHaveCount(2);
 
-  const instruction = page.getByTestId('instruction');
-  await expect(instruction).toContainText('Place an attack card in each lane (0/3)');
+  const status = page.getByTestId('status');
+  await expect(status).toHaveText('Place a card in each lane (0/3).');
   for (const key of ['ArrowRight', '1', 'ArrowRight', '2', 'ArrowRight', '3']) await page.keyboard.press(key);
-  await expect(instruction).toHaveText('Press Attack to launch all three lanes.');
+  await expect(status).toHaveText('Press Attack.');
 
   await page.getByRole('button', { name: 'Attack' }).click();
-  const callout = page.getByTestId('callout');
-  await expect(callout).toContainText(/takes? duel|is a draw/);
+  await expect(status).toContainText(/win duel|is a draw/);
   await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible();
 
-  // Wide screens list lane reasons inline; narrow screens put them behind "Why?".
-  const why = page.getByRole('button', { name: 'Why?' });
-  if (await why.isVisible()) {
-    await why.click();
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toContainText('Lane 1');
-    await expect(dialog).toContainText('Lane 3');
-    await page.keyboard.press('Escape');
-    await expect(dialog).toHaveCount(0);
-  } else {
-    await expect(callout).toContainText('Lane 1');
-    await expect(callout).toContainText('Lane 3');
-  }
+  await page.getByRole('button', { name: 'Why?' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Lane 1');
+  await expect(dialog).toContainText('Lane 3');
+  await expect(dialog.locator('.card-face')).toHaveCount(6);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
 
   await expectNoOverlap(page);
   await expectTableHeight(page, 240);

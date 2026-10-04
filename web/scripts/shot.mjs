@@ -9,6 +9,7 @@ mkdirSync(out, { recursive: true });
 
 const sizes = [
   { name: 'desktop', width: 1280, height: 720 },
+  { name: 'laptop', width: 1366, height: 625 },
   { name: 'phone', width: 390, height: 844 },
   { name: 'phone-short', width: 390, height: 664 },
 ];
@@ -45,6 +46,15 @@ for (const s of sizes) {
   await page.keyboard.press('Enter');
   await pause(800);
   await shot('4-revealed');
+  await page.getByRole('button', { name: 'Why?' }).click();
+  await pause(300);
+  await shot('4b-why');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await pause(220);
+  await shot('4c-flying');
+  await pause(1200);
+  await shot('4d-absorbed');
 
   // Rebellion via the dev panel (skipped until Task 8 adds it).
   await startGame(page, '?debug');

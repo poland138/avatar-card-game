@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ELEMENTS, SUITS } from '@core/constants';
+import { ELEMENTS } from '@core/constants';
 import { rankLabel } from '@core/deck';
 import { GLYPHS } from '../lib/glyphs';
 
@@ -84,12 +84,28 @@ export function backTexture() {
   return cached('back', () => {
     const c = canvas(W, H);
     const ctx = c.getContext('2d');
-    cardFrame(ctx, '#475569', '#1e293b');
-    SUITS.forEach((s, i) => {
-      const x = W / 2 + (i % 2 ? 44 : -44);
-      const y = H / 2 + (i < 2 ? -44 : 44);
-      drawGlyph(ctx, s, x, y, 56, ELEMENTS[s].border);
-    });
+    // Plain striped back with a gold ring, so face-down cards never read as faces.
+    cardFrame(ctx, '#64748b', '#1e293b');
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(10, 10, W - 20, H - 20, R - 8);
+    ctx.clip();
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 10;
+    for (let d = -H; d < W + H; d += 28) {
+      ctx.beginPath();
+      ctx.moveTo(d, 0);
+      ctx.lineTo(d - H, H);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.beginPath();
+    ctx.arc(W / 2, H / 2, 52, 0, Math.PI * 2);
+    ctx.fillStyle = '#1e293b';
+    ctx.fill();
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#facc15';
+    ctx.stroke();
     return toTexture(c);
   });
 }

@@ -5,7 +5,6 @@ export default function StatusBanner({ status, children }) {
         <span className="phase">{status.phaseLabel}</span>
         {status.progress && <span className="progress">{status.progress}</span>}
       </span>
-      <span className="instruction" data-testid="instruction" aria-live="polite">{status.instruction}</span>
       <span className="banner-tools">{children}</span>
     </header>
   );

@@ -74,10 +74,11 @@ Styling uses inline `StyleSheet.create` per file and the shared `COLORS` palette
 ### Web app (`web/`)
 
 - `src/App.jsx` — same reducer + timer-effect pattern as the Expo `App.js`, plus an intro queue fed by `getPhaseIntro`, lifted modal state, and auto-play for skirmishes the human sits out. AI timers pause while an intro or modal is open.
-- `src/lib/cardLayout.js` — pure `layoutTable(state, tableGeometry(w, h, handCount), ui)` decides where every card, slot and badge goes (pixels, origin at canvas center). Card size is solved from the table height; long hands use two rows. All table positioning changes go here; its tests assert nothing overlaps from 374×200 up.
+- `src/lib/cardLayout.js` — pure `layoutTable(state, geometryFor(state, w, h), ui)` decides where every card, opponent fan, slot, badge and point label goes (pixels, origin at canvas center). Opponents sit at the table edges (`seatMap`); `resolved` entries tell `scene/useAbsorb.js` where shown cards fly on Continue. All table positioning changes go here; its tests assert nothing overlaps from 374×300 up.
+- Drag/tap: `scene/Table.jsx` turns pointer gestures into `onTap(item)` / `onDrop(item, point, geometry)`; `GameScreen` maps them to reducer actions (drop = select; Play/Defend/Attack confirms).
 - `src/lib/primaryAction.js` — the single action button's label, enabled state and action.
 - `src/scene/` — three.js via React Three Fiber. Orthographic camera, 1 unit = 1 CSS pixel, `frameloop="demand"`; `Card3D` animates toward its layout target and calls `invalidate()` until settled.
-- `src/hud/` — HTML overlay. `styles.css` uses a CSS grid where each `[data-region]` owns an area; the Playwright layout test fails if any two regions overlap or the table drops below 240px. The dev panel is a collapsible bar below the grid.
+- `src/hud/` — HTML overlay: banner, table point labels (`TableLabel`), the centered `ActionBar`, and modals (`WhyModal` draws real cards). `styles.css` gives banner / table / action bar their own grid rows; the Playwright layout test fails if regions or point labels overlap or the table drops below 240px. The dev panel is a collapsible bar below the grid.
 
 ## Working in this codebase
 

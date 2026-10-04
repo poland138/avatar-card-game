@@ -109,152 +109,139 @@ h1, h2, h3, p { margin: 0; }
 .results li { display: grid; grid-template-columns: auto 1fr auto; gap: var(--s3); align-items: center; }
 .results li.me { font-weight: 700; }
 
-/* Game screen: every [data-region] owns a grid area, so nothing can overlap. */
-.app-shell { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+/* Game screen: banner, table, action bar. Each [data-region] owns a row, so
+   nothing overlaps; if the window is too short the page scrolls instead of
+   cutting off the bottom. */
+.app-shell {
+  height: 100vh; height: 100dvh;
+  display: flex; flex-direction: column; overflow-y: auto;
+}
 .game {
-  flex: 1; min-height: 0;
+  flex: 1 0 auto; min-height: 0;
   display: grid; gap: var(--s2);
   padding: max(var(--s2), env(safe-area-inset-top)) var(--s2) max(var(--s2), env(safe-area-inset-bottom));
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: auto auto minmax(240px, 1fr) auto auto auto;
-  grid-template-areas:
-    "banner banner banner"
-    "p1 p2 p3"
-    "table table table"
-    "callout callout callout"
-    "action action action"
-    "board board board";
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(240px, 1fr) auto;
+  grid-template-areas: "banner" "table" "action";
 }
 .game > * { min-width: 0; }
-/* On narrow screens the side wrappers vanish and their children take their own areas. */
-.side-left, .side-right { display: contents; }
-.plate, .scoreboard { min-width: 0; }
-.plate[data-seat="1"] { grid-area: p1; }
-.plate[data-seat="2"] { grid-area: p2; }
-.plate[data-seat="3"] { grid-area: p3; }
-@media (min-width: 900px) and (min-aspect-ratio: 1/1) {
-  .game {
-    gap: var(--s3); padding: var(--s3);
-    grid-template-columns: 220px minmax(0, 1fr) 220px;
-    grid-template-rows: auto auto minmax(240px, 1fr) auto auto;
-    grid-template-areas:
-      "banner banner banner"
-      "left p2 right"
-      "left table right"
-      "left callout right"
-      "left action right";
-  }
-  .side-left, .side-right {
-    display: flex; flex-direction: column; justify-content: center; gap: var(--s3); min-width: 0;
-  }
-  .side-left { grid-area: left; }
-  .side-right { grid-area: right; }
-  .plate[data-seat="2"] { justify-self: center; width: min(100%, 320px); }
-}
 
-/* Banner: phase + progress + tools on top, instruction below (one row on wide screens). */
+/* Banner: phase + progress centered, Rules/Log on the right. */
 .banner {
   grid-area: banner;
-  display: grid; align-items: center; gap: var(--s1) var(--s3);
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "titles tools" "instr instr";
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--s2);
   padding: var(--s2) var(--s3);
   background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
 }
 .banner .titles {
-  grid-area: titles; min-width: 0;
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s3);
+  grid-column: 2; min-width: 0; text-align: center;
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 0 var(--s3);
 }
 .banner .phase { font-weight: 700; }
 .banner .progress { color: var(--muted); font-size: 13px; }
-.banner .instruction { grid-area: instr; color: var(--accent); font-weight: 600; }
-.banner-tools { grid-area: tools; display: flex; gap: var(--s1); }
-@media (min-width: 900px) and (min-aspect-ratio: 1/1) {
-  .banner { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "titles instr tools"; }
-  .banner .instruction { text-align: center; }
-}
-
-/* Opponent plates: compact on phones (short name, short stats), full on wide screens. */
-.plate {
-  display: flex; flex-direction: column; gap: 2px; padding: var(--s1) var(--s2);
-  background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--el-border);
-  border-radius: var(--radius);
-}
-.plate.sitting-out { opacity: 0.45; }
-.plate.winner { box-shadow: 0 0 0 2px var(--win); }
-.plate .head { display: flex; align-items: center; gap: var(--s1); min-width: 0; font-weight: 700; }
-.plate .name, .plate .short-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.plate .tag {
-  flex: none; margin-left: auto; padding: 0 var(--s1); border-radius: 4px;
-  font-size: 11px; font-weight: 600; color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-}
-.plate .stats { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.plate .name, .plate .stats-long, .plate .tag-long { display: none; }
-.plate .peek { display: flex; gap: 2px; overflow-x: auto; }
-.mini-card {
-  flex: none; font-size: 11px; padding: 0 3px; border-radius: 3px;
-  background: #0b1220; border: 1px solid var(--el-border); color: var(--el-text);
-}
-.mini-card.next { outline: 2px solid var(--accent); }
-@media (min-width: 900px) and (min-aspect-ratio: 1/1) {
-  .plate { gap: var(--s1); padding: var(--s3); }
-  .plate .name, .plate .stats-long, .plate .tag-long { display: inline; }
-  .plate .short-name, .plate .stats-short, .plate .tag-short { display: none; }
-  .plate .peek { flex-wrap: wrap; overflow: visible; }
+.banner-tools { grid-column: 3; justify-self: end; display: flex; gap: var(--s1); }
+/* Phones get icon-only tool buttons so the banner title stays truly centered. */
+.wide-only { display: none; }
+.narrow-only { display: inline; }
+.banner-tools .btn { min-width: 32px; padding: 0 var(--s2); }
+@media (min-width: 600px) {
+  .wide-only { display: inline; }
+  .narrow-only { display: none; }
+  .banner-tools .btn { padding: 0 var(--s3); }
 }
 
 .table {
   grid-area: table; position: relative; min-height: 0; overflow: hidden;
   border-radius: 16px; border: 1px solid var(--border);
-  background: radial-gradient(ellipse at 50% 40%, #22324a 0%, #172235 55%, #0f172a 100%);
+  background: radial-gradient(ellipse at 50% 45%, #22324a 0%, #172235 55%, #0f172a 100%);
+  touch-action: none;
 }
 .table-fallback { display: grid; place-items: center; padding: var(--s5); text-align: center; color: var(--muted); }
+.table-labels { position: absolute; inset: 0; pointer-events: none; }
 
-/* Callout: headline always; per-lane reasons inline on wide screens, behind "Why?" on narrow. */
-.callout {
-  grid-area: callout; min-height: 44px; max-height: 9.5em; overflow-y: auto;
-  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s3);
-  padding: var(--s2) var(--s3); font-size: 14px;
-  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius);
+/* Point labels on the table edges. */
+.seat-label {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; justify-content: center; gap: 1px;
+  padding: 2px var(--s2); font-size: 12px; line-height: 1.2;
+  background: rgb(15 23 42 / 0.82); border: 1px solid var(--border); border-left: 3px solid var(--el-border);
+  border-radius: 8px; white-space: nowrap; overflow: hidden;
 }
-.callout.empty { color: var(--dim); }
-.callout .headline { flex: 1 1 12em; min-width: 0; font-weight: 700; }
-.callout .why { flex: none; }
-.callout .lanes { flex-basis: 100%; display: none; }
-@media (min-width: 900px) and (min-aspect-ratio: 1/1) {
-  .callout .lanes { display: grid; }
-  .callout .why { display: none; }
+.seat-label.out { opacity: 0.45; }
+.seat-top, .seat-bottom { display: flex; align-items: center; gap: var(--s1); min-width: 0; }
+.seat-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.seat-value { font-size: 15px; color: var(--text); }
+.seat-caption, .seat-sub { color: var(--dim); font-size: 11px; }
+.seat-label .tag {
+  margin-left: auto; padding: 0 var(--s1); border-radius: 4px;
+  font-size: 10px; font-weight: 700; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
 }
-.lanes { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-.lanes .lane-king { color: var(--win); }
-.lanes .lane-rebel { color: var(--rebel); }
-.lanes .lane-draw { color: var(--draw); }
+.seat-label.compact { align-items: center; padding: 1px var(--s1); border-left-width: 1px; border-top: 3px solid var(--el-border); }
+.seat-label.compact .seat-top { justify-content: center; }
+.seat-label.compact .tag { margin-left: 0; }
+.tally {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; align-items: center; justify-content: center; gap: var(--s1);
+  font-size: 13px; border-radius: 999px; white-space: nowrap;
+  background: rgb(15 23 42 / 0.85); border: 1px solid var(--border);
+}
+.tally b { font-size: 16px; }
+.tally-king { color: var(--win); }
+.tally-rebels { color: var(--rebel); }
+.pulse { animation: pulse 0.8s ease-out; }
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgb(250 204 21 / 0.9); scale: 1.18; }
+  100% { box-shadow: 0 0 0 12px rgb(250 204 21 / 0); scale: 1; }
+}
 
-.action { grid-area: action; display: flex; flex-direction: column; align-items: center; gap: var(--s1); }
-.action .hint { min-height: 16px; font-size: 12px; color: var(--dim); }
+/* Action bar: one short centered line and one centered button. */
+.action {
+  grid-area: action;
+  display: flex; flex-direction: column; align-items: center; gap: var(--s2);
+  text-align: center;
+}
+.status {
+  margin: 0; min-height: 28px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--s1) var(--s2);
+  font-weight: 600;
+}
+.chip {
+  display: inline-block; padding: 1px var(--s2); border-radius: 999px;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  background: var(--panel); border: 1px solid var(--border-strong);
+}
 
-/* Scoreboard: one-line strip on phones, vertical list on wide screens. */
-.scoreboard {
-  grid-area: board; padding: var(--s1) var(--s3); font-size: 13px;
-  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+/* Why? popup: real cards instead of sentences. */
+.card-face {
+  position: relative; flex: none;
+  width: 46px; height: 64px; padding: 3px 4px;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: space-between;
+  border-radius: 6px; border: 2px solid var(--el-border); background: #0f172a;
+  color: var(--el-text); font-weight: 700;
 }
-.scoreboard h2 {
-  display: none; margin-bottom: var(--s1);
-  font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dim);
+.card-face .card-rank { align-self: flex-start; font-size: 15px; line-height: 1; }
+.card-face.won { box-shadow: 0 0 0 2px var(--win), 0 0 12px rgb(250 204 21 / 0.6); }
+.card-face.empty { justify-content: center; border-style: dashed; border-color: var(--border-strong); color: var(--dim); }
+.card-star { position: absolute; top: -8px; right: -8px; font-size: 14px; color: var(--accent); text-shadow: 0 0 3px #000; }
+.card-crown { position: absolute; bottom: -9px; right: -8px; font-size: 14px; }
+.why-trick { display: flex; justify-content: center; gap: var(--s4); flex-wrap: wrap; }
+.why-seat { display: flex; flex-direction: column; align-items: center; gap: var(--s1); font-size: 12px; color: var(--muted); }
+.why-seat.won .why-name { color: var(--win); font-weight: 700; }
+.why-verdict { display: flex; justify-content: center; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+.why-legend { text-align: center; font-size: 12px; color: var(--dim); }
+.why-lanes { display: grid; gap: var(--s3); }
+.why-lane {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--s2) var(--s3);
+  padding: var(--s2); border-radius: var(--radius); background: var(--panel-2);
 }
-.scoreboard ol { list-style: none; margin: 0; padding: 0; display: flex; justify-content: space-between; gap: var(--s2); }
-.scoreboard li { display: flex; align-items: center; gap: var(--s1); min-width: 0; white-space: nowrap; }
-.scoreboard li.me { font-weight: 700; }
-.scoreboard li:not(.me) .name { display: none; }
-.scoreboard .tricks { color: var(--dim); font-size: 12px; }
-@media (min-width: 900px) and (min-aspect-ratio: 1/1) {
-  .scoreboard { padding: var(--s2) var(--s3); }
-  .scoreboard h2 { display: block; }
-  .scoreboard ol { flex-direction: column; gap: 2px; }
-  .scoreboard li:not(.me) .name { display: inline; }
-  .scoreboard .name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
-}
+.why-lane-n { width: 100%; text-align: center; font-size: 12px; color: var(--dim); }
+.why-cards { display: inline-flex; align-items: center; gap: var(--s2); }
+.why-vs { color: var(--dim); font-size: 12px; }
+.why-result { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.why-lane.king .why-result b { color: var(--win); }
+.why-lane.rebel .why-result b { color: var(--rebel); }
+.why-lane.draw .why-result b { color: var(--draw); }
 
 /* Modals */
 .modal-backdrop {

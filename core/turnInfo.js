@@ -33,7 +33,7 @@ export function getStatus(state) {
       return {
         phaseLabel: state.duelNumber > 0 ? 'Rebellion over' : 'King crowned',
         progress: '',
-        instruction: 'Preparing the next round…',
+        instruction: 'Get ready…',
       };
     case 'rebellion':
       return rebellionStatus(state);
@@ -60,49 +60,49 @@ function ffaStatus(state) {
     } else {
       const handsEmpty = active.every(i => state.players[i].hand.length === 0);
       instruction = handsEmpty
-        ? 'Last trick played. Press Continue to see who is crowned.'
-        : 'Trick over. Press Continue for the next one.';
+        ? 'Last trick! Press Continue.'
+        : 'Press Continue.';
     }
   } else if (state.revealedTrick || state.animating) {
     instruction = 'Revealing…';
   } else if (!humanActive) {
-    instruction = 'You sit this skirmish out. Tricks play automatically.';
+    instruction = 'You sit this one out.';
   } else if (state.humanFFAPick) {
-    instruction = 'Press Play to reveal all cards at once.';
+    instruction = 'Press Play to reveal.';
   } else {
-    instruction = 'Pick a card to play.';
+    instruction = 'Drag or tap a card to play.';
   }
   return { phaseLabel, progress, instruction };
 }
 
 function rebellionStatus(state) {
-  const tally = state.pendingResolution?.newDuelWins ?? state.duelWins;
-  const progress = `Duel ${state.duelNumber} of ${REBELLION_DUELS} · King ${tally.king} – Rebels ${tally.rebellion}`;
+  // The duel tally lives on the table itself, so the banner only shows progress.
+  const progress = `Duel ${state.duelNumber} of ${REBELLION_DUELS}`;
   const humanIsKing = state.kingIdx === 0;
   const humanLane = state.rebelOrder.indexOf(0);
 
   let instruction;
   if (state.waitingForContinue) {
-    instruction = 'Duel over. Press Continue.';
+    instruction = 'Press Continue.';
   } else if (state.rebellionStage === 'king-choosing') {
     if (humanIsKing) {
       const placed = state.selectedKingCards.filter(Boolean).length;
       instruction = placed < 3
-        ? `Place an attack card in each lane (${placed}/3): pick a card, then tap a lane.`
-        : 'Press Attack to launch all three lanes.';
+        ? `Place a card in each lane (${placed}/3).`
+        : 'Press Attack.';
     } else {
-      instruction = 'The King is choosing attacks…';
+      instruction = 'The King is choosing…';
     }
   } else if (state.rebellionStage === 'rebels-responding') {
     if (humanLane >= 0 && !state.rebelResponses[humanLane]) {
       instruction = state.humanRebelSelection
-        ? 'Press Defend to lock in your card.'
-        : `Pick a card to defend lane ${humanLane + 1} against the King's ${cardLabel(state.kingLanes[humanLane])}.`;
+        ? 'Press Defend.'
+        : `Block the King's ${cardLabel(state.kingLanes[humanLane])}.`;
     } else {
-      instruction = 'Rebels are choosing defenses…';
+      instruction = 'Rebels are choosing…';
     }
   } else {
-    instruction = 'Resolving the duel…';
+    instruction = 'Resolving…';
   }
   return { phaseLabel: humanIsKing ? 'Rebellion · You are King' : 'Rebellion', progress, instruction };
 }
@@ -262,4 +262,69 @@ function rebellionIntro(prev, state) {
     : `You are a rebel defending lane ${state.rebelOrder.indexOf(0) + 1}. Each duel, answer the King's attack in your lane. The rebels win by taking 4 duels.`;
   const streak = state.kingStreak > 0 ? ` Streak ×${2 ** state.kingStreak}: points and XP are multiplied.` : '';
   return { kind: 'rebellion-start', title, body: lead + role + streak, rule: LANE_RULE };
+}
+
+export const TRICK_REASON_SHORT = {
+  'only-trump': 'only trump',
+  'highest-trump': 'highest trump',
+  'highest-rank': 'highest card',
+  'tie-defender': 'tie → element owner',
+  'tie-first-trump': 'tie → earlier seat',
+  'tie-random': 'tie → coin flip',
+};
+
+// ★ marks a card of the player's own element (a trump).
+export const LANE_REASON_SHORT = {
+  'both-own': 'both ★ → higher wins',
+  'both-own-draw': 'both ★, same rank',
+  'king-own': '★ beats non-★',
+  'rebel-own': '★ beats non-★',
+  'higher-rank': 'higher card wins',
+  'tie-both-enemy': 'same rank → draw',
+  'tie-king-in-enemy': 'same rank: enemy suit loses',
+  'tie-rebel-in-enemy': 'same rank: enemy suit loses',
+  'tie': 'same rank → draw',
+  'no-defender': 'no defender',
+};
+
+export function trickSummary(trick, players) {
+  const name = playerLabel(players, trick.winner);
+  return {
+    idx: trick.winner,
+    element: players[trick.winner].element,
+    text: name === 'You' ? 'You win' : `${name} wins`,
+    reason: TRICK_REASON_SHORT[trick.reason] ?? '',
+  };
+}
+
+export function laneDetails(state) {
+  const kingElement = state.players[state.kingIdx].element;
+  return state.rebelOrder.map((rebelIdx, laneIdx) => {
+    const kingCard = state.kingLanes[laneIdx];
+    const rebelCard = state.rebelResponses[laneIdx]?.card ?? null;
+    const rebelElement = state.players[rebelIdx].element;
+    const base = {
+      laneIdx,
+      rebelIdx,
+      rebelName: playerLabel(state.players, rebelIdx),
+      kingCard,
+      rebelCard,
+      kingStar: kingCard.suit === kingElement,
+      rebelStar: !!rebelCard && rebelCard.suit === rebelElement,
+    };
+    if (!rebelCard) return { ...base, result: 'draw', reasonText: LANE_REASON_SHORT['no-defender'] };
+    const { result, reason } = resolveLaneDetailed(kingCard, rebelCard, kingElement, rebelElement);
+    const key = reason === 'both-own' && result === 'draw' ? 'both-own-draw' : reason;
+    return { ...base, result, reasonText: LANE_REASON_SHORT[key] };
+  });
+}
+
+export function duelSummary(state) {
+  const lanes = laneDetails(state);
+  const kw = lanes.filter(l => l.result === 'king').length;
+  const rw = lanes.filter(l => l.result === 'rebel').length;
+  const n = state.duelNumber;
+  if (kw > rw) return `${state.kingIdx === 0 ? 'You win' : 'King wins'} duel ${n} (${kw}–${rw})`;
+  if (rw > kw) return `Rebels win duel ${n} (${rw}–${kw})`;
+  return `Duel ${n} is a draw (${kw}–${rw})`;
 }

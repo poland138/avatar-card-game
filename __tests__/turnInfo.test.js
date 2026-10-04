@@ -2,6 +2,7 @@ import { gameReducer, initialState } from '../core/reducer';
 import { resolveTrick } from '../core/rules';
 import {
   getStatus, explainTrick, explainLane, explainDuel, getPhaseIntro, cardLabel,
+  trickSummary, laneDetails, duelSummary, LANE_REASON_SHORT,
 } from '../core/turnInfo';
 
 const players = [
@@ -65,16 +66,16 @@ describe('getStatus', () => {
 
   test('crowning pause', () => {
     expect(getStatus({ ...ffa(), phase: 'score', kingIdx: 1 }))
-      .toEqual({ phaseLabel: 'King crowned', progress: '', instruction: 'Preparing the next round…' });
+      .toEqual({ phaseLabel: 'King crowned', progress: '', instruction: 'Get ready…' });
   });
 
   test('FFA asks for a card, then for Play', () => {
     const s = ffa();
     expect(getStatus(s)).toEqual({
-      phaseLabel: 'Free-for-all', progress: 'Trick 1 of 13', instruction: 'Pick a card to play.',
+      phaseLabel: 'Free-for-all', progress: 'Trick 1 of 13', instruction: 'Drag or tap a card to play.',
     });
     const picked = gameReducer(s, { type: 'SELECT_FFA_CARD', card: s.players[0].hand[0] });
-    expect(getStatus(picked).instruction).toBe('Press Play to reveal all cards at once.');
+    expect(getStatus(picked).instruction).toBe('Press Play to reveal.');
   });
 
   test('FFA reveal, then Continue', () => {
@@ -83,19 +84,19 @@ describe('getStatus', () => {
     s = gameReducer(s, { type: 'COMMIT_FFA_TURN' });
     expect(getStatus(s).instruction).toBe('Revealing…');
     s = gameReducer(s, { type: 'ACK_FFA_REVEAL' });
-    expect(getStatus(s).instruction).toBe('Trick over. Press Continue for the next one.');
+    expect(getStatus(s).instruction).toBe('Press Continue.');
   });
 
   test('last trick asks to continue to the crowning', () => {
     const s = gameReducer(ffa(), { type: 'SKIP_TO_FFA_END', wins: [4, 3, 3, 3] });
-    expect(getStatus(s).instruction).toBe('Last trick played. Press Continue to see who is crowned.');
+    expect(getStatus(s).instruction).toBe('Last trick! Press Continue.');
   });
 
   test('skirmish when the human sits out', () => {
     expect(getStatus(sittingOut())).toEqual({
       phaseLabel: 'Skirmish',
       progress: 'Trick 1 of 5',
-      instruction: 'You sit this skirmish out. Tricks play automatically.',
+      instruction: 'You sit this one out.',
     });
     expect(getStatus(sittingOut({ waitingForContinue: true })).instruction).toBe('Watching the skirmish…');
   });
@@ -106,32 +107,32 @@ describe('getStatus', () => {
     s = gameReducer(s, { type: 'SET_SELECTED_KING_CARDS', cards: [a, null, null] });
     expect(getStatus(s)).toEqual({
       phaseLabel: 'Rebellion · You are King',
-      progress: 'Duel 1 of 7 · King 0 – Rebels 0',
-      instruction: 'Place an attack card in each lane (1/3): pick a card, then tap a lane.',
+      progress: 'Duel 1 of 7',
+      instruction: 'Place a card in each lane (1/3).',
     });
     s = gameReducer(s, { type: 'SET_SELECTED_KING_CARDS', cards: [a, b, c] });
-    expect(getStatus(s).instruction).toBe('Press Attack to launch all three lanes.');
+    expect(getStatus(s).instruction).toBe('Press Attack.');
     s = gameReducer(s, { type: 'COMMIT_KING_CARDS', cards: [a, b, c] });
-    expect(getStatus(s).instruction).toBe('Rebels are choosing defenses…');
+    expect(getStatus(s).instruction).toBe('Rebels are choosing…');
   });
 
   test('AI king choosing', () => {
     const s = gameReducer(ffa(), { type: 'DEAL_REBELLION', kingIdx: 2 });
-    expect(getStatus(s).instruction).toBe('The King is choosing attacks…');
+    expect(getStatus(s).instruction).toBe('The King is choosing…');
   });
 
   test('human rebel sees the attack on their lane, then confirms', () => {
     let s = humanRebelAttacked();
-    expect(getStatus(s).instruction).toBe("Pick a card to defend lane 2 against the King's Earth Q.");
+    expect(getStatus(s).instruction).toBe("Block the King's Earth Q.");
     s = gameReducer(s, { type: 'SELECT_REBEL_CARD', card: s.players[0].hand[0] });
-    expect(getStatus(s).instruction).toBe('Press Defend to lock in your card.');
+    expect(getStatus(s).instruction).toBe('Press Defend.');
   });
 
   test('resolving shows the updated duel tally', () => {
     const s = resolvedHumanKingDuel();
     const t = s.pendingResolution.newDuelWins;
-    expect(getStatus(s).progress).toBe(`Duel 1 of 7 · King ${t.king} – Rebels ${t.rebellion}`);
-    expect(getStatus(s).instruction).toBe('Duel over. Press Continue.');
+    expect(getStatus(s).progress).toBe('Duel 1 of 7');
+    expect(getStatus(s).instruction).toBe('Press Continue.');
   });
 });
 
@@ -266,5 +267,40 @@ describe('getPhaseIntro', () => {
     expect(intro.title).toBe(`${before.players[1].name} holds the crown!`);
     expect(intro.body).toContain('won 4–2: +4 pts, +5 XP.');
     expect(intro.body).toContain('Streak ×2');
+  });
+});
+
+describe('short summaries for the action bar and Why? popup', () => {
+  test('trickSummary names the winner and a short reason', () => {
+    const plays = [play(0, 'water', 5), play(1, 'fire', 9), play(2, 'air', 13), play(3, 'fire', 12)];
+    const trick = { plays, ...resolveTrick(plays, players) };
+    expect(trickSummary(trick, players)).toEqual({ idx: 1, element: 'fire', text: 'Firebender wins', reason: 'highest trump' });
+    const mine = [play(0, 'water', 5), play(1, 'earth', 14), play(2, 'air', 13), play(3, 'fire', 12)];
+    expect(trickSummary({ plays: mine, ...resolveTrick(mine, players) }, players).text).toBe('You win');
+  });
+
+  test('laneDetails mirrors the reducer and marks own-element cards', () => {
+    const s = resolvedHumanKingDuel();
+    const lanes = laneDetails(s);
+    expect(lanes.map(l => l.result)).toEqual(s.laneOutcomes);
+    for (const l of lanes) {
+      expect(l.kingStar).toBe(l.kingCard.suit === s.players[0].element);
+      expect(typeof l.reasonText).toBe('string');
+      expect(l.reasonText.length).toBeGreaterThan(0);
+    }
+  });
+
+  test('duelSummary is one short line', () => {
+    const s = resolvedHumanKingDuel();
+    const kw = s.laneOutcomes.filter(o => o === 'king').length;
+    const rw = s.laneOutcomes.filter(o => o === 'rebel').length;
+    let expected = `Duel 1 is a draw (${kw}–${rw})`;
+    if (kw > rw) expected = `You win duel 1 (${kw}–${rw})`;
+    if (rw > kw) expected = `Rebels win duel 1 (${rw}–${kw})`;
+    expect(duelSummary(s)).toBe(expected);
+  });
+
+  test('lane reason texts are short', () => {
+    for (const text of Object.values(LANE_REASON_SHORT)) expect(text.length).toBeLessThanOrEqual(32);
   });
 });
