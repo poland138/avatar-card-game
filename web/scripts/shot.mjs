@@ -82,6 +82,26 @@ for (const s of sizes) {
       await shot('8-why');
     }
   }
+  // Rebel view: an AI King on top, you defending the middle lane.
+  await startGame(page, '?debug');
+  await dismissIntro(page);
+  if (await page.getByRole('button', { name: /^Dev/ }).count()) {
+    await page.getByRole('button', { name: /^Dev/ }).click();
+    const inputs = page.locator('.dev-panel input[type="number"]');
+    for (const [i, v] of [2, 5, 3, 3].entries()) await inputs.nth(i).fill(String(v));
+    await page.getByRole('button', { name: /^Skip \(/ }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await pause(400);
+    await dismissIntro(page);
+    await pause(1500);
+    await shot('9-rebel-attacked');
+    await page.keyboard.press('ArrowRight');
+    await pause(500);
+    await shot('10-rebel-picked');
+    await page.keyboard.press('Enter');
+    await pause(1500);
+    await shot('11-rebel-resolved');
+  }
   await page.close();
 }
 await browser.close();

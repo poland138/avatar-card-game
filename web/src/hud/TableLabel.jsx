@@ -10,6 +10,10 @@ export default function TableLabel({ label, pulse }) {
     height: label.h,
   };
 
+  if (label.kind === 'vs') {
+    return <div className="vs-marker" style={style} data-label={label.id}>VS</div>;
+  }
+
   if (label.kind === 'pill') {
     return <div className="center-pill" style={style} data-label={label.id}>{label.text}</div>;
   }

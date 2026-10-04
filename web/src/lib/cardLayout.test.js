@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import { gameReducer, initialState } from '@core/reducer';
 import {
-  geometryFor, tableGeometry, handPositions, layoutTable, getHandState, seatMap, laneX, laneRows,
+  geometryFor, tableGeometry, kothGeometry, handPositions, layoutTable, getHandState, laneX, laneRows,
   nearestLane, seatPosition, BADGE_SIZE,
 } from './cardLayout';
 
 const SIZES = [
-  { name: 'tiny phone table', width: 374, height: 300 },
+  { name: 'small phone table', width: 374, height: 420 },
   { name: 'phone table', width: 374, height: 600 },
   { name: 'short laptop table', width: 1340, height: 450 },
   { name: 'desktop table', width: 1256, height: 560 },
@@ -88,8 +88,11 @@ function expectApart(as, bs, what) {
 
 describe('tableGeometry', () => {
   test.each(SIZES)('$name: card size stays within bounds', ({ width, height }) => {
-    for (const tally of [false, true]) {
-      const g = tableGeometry(width, height, { handCount: 21, tally });
+    for (const g of [
+      tableGeometry(width, height, { handCount: 21 }),
+      kothGeometry(width, height, { handCount: 21, humanKing: true }),
+      kothGeometry(width, height, { handCount: 7 }),
+    ]) {
       expect(g.cardW).toBeGreaterThanOrEqual(24);
       expect(g.cardW).toBeLessThanOrEqual(120);
       expect(g.cardH).toBe(Math.round(g.cardW * 1.4));
@@ -123,27 +126,55 @@ describe('layoutTable keeps every group apart', () => {
   }
 });
 
-describe('seats', () => {
-  test('free-for-all seats by player index', () => {
-    expect(seatMap(ffaState())).toEqual({ 0: 'south', 1: 'west', 2: 'north', 3: 'east' });
-  });
-
-  test('an AI King sits on top and rebels line up with their lanes', () => {
+describe('King of the Hill table', () => {
+  test.each(SIZES)('$name: an AI King has the top band and each rebel owns a lane column', size => {
     const s = rebelAttacked();
-    const [a, , c] = s.rebelOrder;
-    expect(seatMap(s)).toEqual({ 0: 'south', 2: 'north', [a]: 'west', [c]: 'east' });
-    const g = geometryFor(s, 1256, 560);
+    const g = geometryFor(s, size.width, size.height);
+    expect(g.mode).toBe('koth');
     const { kingY, rebelY } = laneRows(s, g);
     expect(kingY).toBeGreaterThan(rebelY);
+    const layout = layoutTable(s, g, {});
+    // King's face-down cards sit above his attack row; rebels' cards stay inside their own column.
+    const kingMinis = layout.cards.filter(c => c.scale < 1 && s.players[2].hand.some(h => h.id === c.id));
+    expect(kingMinis.length).toBeGreaterThan(0);
+    for (const m of kingMinis) expect(m.y).toBeGreaterThan(kingY);
+    s.rebelOrder.forEach((rebelIdx, lane) => {
+      if (rebelIdx === 0) return;
+      const minis = layout.cards.filter(c => c.scale < 1 && s.players[rebelIdx].hand.some(h => h.id === c.id));
+      expect(minis).toHaveLength(7);
+      for (const m of minis) {
+        expect(m.x).toBeGreaterThanOrEqual(laneX(lane, g) - g.colWidth / 2);
+        expect(m.x).toBeLessThanOrEqual(laneX(lane, g) + g.colWidth / 2);
+      }
+    });
+    // One band + three lane columns, VS markers until the duel resolves.
+    expect(layout.field.tris).toHaveLength(8);
+    expect(layout.labels.filter(l => l.kind === 'vs')).toHaveLength(3);
   });
 
-  test('when you are King, rebels sit left/top/right and your row is nearest you', () => {
+  test('when you are King your attack row is nearest you', () => {
     const s = kingState();
-    const [a, b, c] = s.rebelOrder;
-    expect(seatMap(s)).toEqual({ 0: 'south', [a]: 'west', [b]: 'north', [c]: 'east' });
     const { kingY, rebelY } = laneRows(s, geometryFor(s, 1256, 560));
     expect(kingY).toBeLessThan(rebelY);
   });
+
+  test('resolved lanes swap VS for result badges', () => {
+    const s = resolvedKingDuel();
+    const layout = layoutTable(s, geometryFor(s, 1256, 560), {});
+    expect(layout.labels.filter(l => l.kind === 'vs')).toHaveLength(0);
+    expect(layout.badges).toHaveLength(3);
+  });
+
+  test('wide screens put rebel panels beside their cards for bigger cards', () => {
+    const s = rebelAttacked();
+    const wide = geometryFor(s, 1340, 450);
+    expect(wide.sideBySide).toBe(true);
+    expect(wide.cardW).toBeGreaterThanOrEqual(60);
+    expect(geometryFor(s, 374, 600).sideBySide).toBe(false);
+  });
+});
+
+describe('free-for-all seats', () => {
 
   test('opponent cards on the sides are rotated 90°', () => {
     const s = ffaState();
@@ -197,7 +228,7 @@ describe('selection, preview and drag', () => {
   });
 
   test('nearestLane picks the closest lane', () => {
-    const g = tableGeometry(1256, 560, { tally: true });
+    const g = kothGeometry(1256, 560);
     expect(nearestLane(laneX(0, g) + 5, g)).toBe(0);
     expect(nearestLane(3, g)).toBe(1);
     expect(nearestLane(laneX(2, g) + 200, g)).toBe(2);

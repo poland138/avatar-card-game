@@ -7,6 +7,7 @@ import Card3D from './Card3D';
 import Slot3D from './Slot3D';
 import Badge3D from './Badge3D';
 import Battlefield from './Battlefield';
+import Backdrop3D from './Backdrop3D';
 import TableLabel from '../hud/TableLabel';
 
 const DRAG_THRESHOLD = 6;
@@ -15,6 +16,7 @@ function Scene({ layout, flights, g, onPress, onSlotSelect }) {
   return (
     <>
       {layout.field && <Battlefield field={layout.field} />}
+      {layout.backdrops.map(b => <Backdrop3D key={b.id} backdrop={b} />)}
       {layout.slots.map(s => <Slot3D key={s.id} slot={s} cardW={g.cardW} cardH={g.cardH} onSelect={onSlotSelect} />)}
       {[...layout.cards, ...flights].map(c => (
         <Card3D key={c.id} item={c} cardW={g.cardW} cardH={g.cardH} onPress={onPress} />
