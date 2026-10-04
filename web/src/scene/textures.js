@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ELEMENTS, SUITS } from '@core/constants';
+import { ELEMENTS } from '@core/constants';
 import { rankLabel } from '@core/deck';
 import { GLYPHS } from '../lib/glyphs';
 
@@ -67,15 +67,32 @@ export function faceTexture(card) {
     const c = canvas(W, H);
     const ctx = c.getContext('2d');
     const el = ELEMENTS[card.suit];
-    cardFrame(ctx, el.bg, '#0f172a');
+    // Solid element-colored face (as on the original mobile cards), with a soft
+    // top highlight. Air's yellow needs dark ink; the others take white.
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, el.border);
+    grad.addColorStop(0.55, el.bg);
+    grad.addColorStop(1, el.bg);
+    ctx.beginPath();
+    ctx.roundRect(0, 0, W, H, R);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.roundRect(9, 9, W - 18, H - 18, R - 8);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.stroke();
+    const ink = card.suit === 'air' ? '#3b2a03' : '#ffffff';
     const label = String(rankLabel(card.rank));
-    ctx.fillStyle = el.text;
-    ctx.font = 'bold 64px system-ui, sans-serif';
+    ctx.fillStyle = ink;
+    ctx.font = 'bold 66px system-ui, sans-serif';
     ctx.textBaseline = 'top';
     ctx.textAlign = 'left';
     ctx.fillText(label, 24, 22);
-    drawGlyph(ctx, card.suit, 46, 118, 44, el.border);
-    drawGlyph(ctx, card.suit, W / 2, H / 2 + 36, 112, el.border);
+    drawGlyph(ctx, card.suit, 46, 120, 44, ink);
+    ctx.globalAlpha = 0.9;
+    drawGlyph(ctx, card.suit, W / 2, H / 2 + 40, 116, ink);
+    ctx.globalAlpha = 1;
     return toTexture(c);
   });
 }
@@ -84,12 +101,28 @@ export function backTexture() {
   return cached('back', () => {
     const c = canvas(W, H);
     const ctx = c.getContext('2d');
-    cardFrame(ctx, '#475569', '#1e293b');
-    SUITS.forEach((s, i) => {
-      const x = W / 2 + (i % 2 ? 44 : -44);
-      const y = H / 2 + (i < 2 ? -44 : 44);
-      drawGlyph(ctx, s, x, y, 56, ELEMENTS[s].border);
-    });
+    // Plain striped back with a gold ring, so face-down cards never read as faces.
+    cardFrame(ctx, '#64748b', '#1e293b');
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(10, 10, W - 20, H - 20, R - 8);
+    ctx.clip();
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 10;
+    for (let d = -H; d < W + H; d += 28) {
+      ctx.beginPath();
+      ctx.moveTo(d, 0);
+      ctx.lineTo(d - H, H);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.beginPath();
+    ctx.arc(W / 2, H / 2, 52, 0, Math.PI * 2);
+    ctx.fillStyle = '#1e293b';
+    ctx.fill();
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#facc15';
+    ctx.stroke();
     return toTexture(c);
   });
 }
@@ -111,10 +144,17 @@ function wrapText(ctx, text, x, y, maxW, lineH) {
   lines.forEach((l, i) => ctx.fillText(l, x, startY + i * lineH));
 }
 
-export function slotTexture(label, color) {
-  return cached(`slot-${label}-${color}`, () => {
+export function slotTexture(label, color, fill = false) {
+  return cached(`slot-${label}-${color}-${fill}`, () => {
     const c = canvas(W, H);
     const ctx = c.getContext('2d');
+    if (fill) {
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(6, 6, W - 12, H - 12, R);
+      ctx.fill();
+    }
     ctx.globalAlpha = 0.7;
     ctx.setLineDash([18, 12]);
     ctx.lineWidth = 6;

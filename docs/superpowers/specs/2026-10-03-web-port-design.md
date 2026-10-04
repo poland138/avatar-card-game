@@ -210,3 +210,12 @@ outcomes. Animations are visual only; the reducer state is the source of truth.
 - Sound, multiplayer, persisting XP (stays in-memory, as in the Expo app).
 - Gameplay or AI rule changes.
 - Changes to the Expo app's UI.
+
+## Revision 2 (2026-10-03): table-style layout
+
+User feedback after the first deploy, built directly (no separate plan):
+- Opponents sit inside the field: face-down fans along the top and (rotated 90°) down the sides, each with a point label. An AI King takes the top; when you're King the rebels sit left/top/right and your attack row is the lane row nearest you. The duel tally sits above the King's line.
+- Cards are sized for the new layout (much larger on laptops); the page scrolls instead of clipping when the window is too short.
+- Drag a hand card onto the field to select it (Play/Defend still confirms); King drops place into the nearest lane.
+- On Continue, the shown cards fly into the winner's point label (or the King/Rebels tally) and the number pulses.
+- One short centered status line + one centered button replace the callout; "Why?" shows the actual cards with ★ (own element) and 👑 (winner) plus a short reason chip.

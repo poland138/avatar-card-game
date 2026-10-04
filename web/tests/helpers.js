@@ -56,6 +56,48 @@ export async function expectNoOverlap(page) {
       if (ox > 0.5 && oy > 0.5) problems.push(`${a.name} overlaps ${b.name}`);
     }
   }
-  expect(boxes.length).toBe(8);
+  expect(boxes.length).toBe(3);
   expect(problems).toEqual([]);
+  await expectLabelsClear(page);
+}
+
+// Point labels sit on the table; they must stay inside it and apart from each other.
+export async function expectLabelsClear(page) {
+  const { table, labels } = await page.evaluate(() => {
+    const box = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; };
+    return {
+      table: box(document.querySelector('[data-region="table"]')),
+      labels: [...document.querySelectorAll('[data-label]')].map(el => ({ name: el.dataset.label, ...box(el) })),
+    };
+  });
+  const problems = [];
+  for (const l of labels) {
+    const out = l.x < table.x - 0.5 || l.y < table.y - 0.5
+      || l.x + l.w > table.x + table.w + 0.5 || l.y + l.h > table.y + table.h + 0.5;
+    if (out) problems.push(`${l.name} sticks out of the table`);
+  }
+  for (let i = 0; i < labels.length; i++) {
+    for (let j = i + 1; j < labels.length; j++) {
+      const a = labels[i];
+      const b = labels[j];
+      const ox = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+      const oy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+      if (ox > 0.5 && oy > 0.5) problems.push(`${a.name} overlaps ${b.name}`);
+    }
+  }
+  expect(labels.length).toBeGreaterThanOrEqual(4);
+  expect(problems).toEqual([]);
+}
+
+// Drag from the bottom-center of the table (always a hand card) up to its center.
+export async function dragHandCardToField(page) {
+  // Let the freshly dealt hand finish sliding into place first.
+  await page.waitForTimeout(700);
+  const t = await page.locator('[data-region="table"]').boundingBox();
+  const x = t.x + t.width / 2;
+  await page.mouse.move(x, t.y + t.height - 30);
+  await page.mouse.down();
+  await page.mouse.move(x, t.y + t.height * 0.6, { steps: 6 });
+  await page.mouse.move(x, t.y + t.height * 0.45, { steps: 6 });
+  await page.mouse.up();
 }

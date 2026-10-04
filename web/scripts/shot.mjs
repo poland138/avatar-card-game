@@ -9,6 +9,7 @@ mkdirSync(out, { recursive: true });
 
 const sizes = [
   { name: 'desktop', width: 1280, height: 720 },
+  { name: 'laptop', width: 1366, height: 625 },
   { name: 'phone', width: 390, height: 844 },
   { name: 'phone-short', width: 390, height: 664 },
 ];
@@ -45,6 +46,15 @@ for (const s of sizes) {
   await page.keyboard.press('Enter');
   await pause(800);
   await shot('4-revealed');
+  await page.getByRole('button', { name: 'Why?' }).click();
+  await pause(300);
+  await shot('4b-why');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await pause(220);
+  await shot('4c-flying');
+  await pause(1200);
+  await shot('4d-absorbed');
 
   // Rebellion via the dev panel (skipped until Task 8 adds it).
   await startGame(page, '?debug');
@@ -71,6 +81,26 @@ for (const s of sizes) {
       await pause(300);
       await shot('8-why');
     }
+  }
+  // Rebel view: an AI King on top, you defending the middle lane.
+  await startGame(page, '?debug');
+  await dismissIntro(page);
+  if (await page.getByRole('button', { name: /^Dev/ }).count()) {
+    await page.getByRole('button', { name: /^Dev/ }).click();
+    const inputs = page.locator('.dev-panel input[type="number"]');
+    for (const [i, v] of [2, 5, 3, 3].entries()) await inputs.nth(i).fill(String(v));
+    await page.getByRole('button', { name: /^Skip \(/ }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await pause(400);
+    await dismissIntro(page);
+    await pause(1500);
+    await shot('9-rebel-attacked');
+    await page.keyboard.press('ArrowRight');
+    await pause(500);
+    await shot('10-rebel-picked');
+    await page.keyboard.press('Enter');
+    await pause(1500);
+    await shot('11-rebel-resolved');
   }
   await page.close();
 }

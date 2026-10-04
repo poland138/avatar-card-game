@@ -13,7 +13,7 @@ export default function Slot3D({ slot, cardW, cardH, onSelect }) {
       }}
     >
       <planeGeometry args={[cardW, cardH]} />
-      <meshBasicMaterial map={slotTexture(slot.label, color)} transparent depthWrite={false} />
+      <meshBasicMaterial map={slotTexture(slot.label, color, !!slot.fill)} transparent depthWrite={false} />
     </mesh>
   );
 }
