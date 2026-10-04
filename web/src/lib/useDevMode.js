@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react';
 export function useDevMode() {
   const [dev, setDev] = useState(() => ({
     enabled: new URLSearchParams(window.location.search).has('debug'),
-    showHands: true,
-    showNextPick: true,
+    showHands: false,
+    showNextPick: false,
   }));
 
   useEffect(() => {
