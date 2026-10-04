@@ -10,6 +10,10 @@ export default function TableLabel({ label, pulse }) {
     height: label.h,
   };
 
+  if (label.kind === 'pill') {
+    return <div className="center-pill" style={style} data-label={label.id}>{label.text}</div>;
+  }
+
   if (label.kind === 'tally') {
     return (
       <div className={`tally tally-${label.side}${pulse ? ' pulse' : ''}`} style={style} data-label={label.id}>
@@ -23,6 +27,8 @@ export default function TableLabel({ label, pulse }) {
   }
 
   const tag = label.compact && label.tag === 'King' ? '👑' : label.tag;
+  // 🏆 tricks won this round, ⭐ war points (first to 21).
+  const icon = label.caption === 'tricks' ? '🏆' : '⭐';
   const classes = ['seat-label', label.compact && 'compact', !label.active && 'out', pulse && 'pulse']
     .filter(Boolean).join(' ');
   return (
@@ -30,16 +36,17 @@ export default function TableLabel({ label, pulse }) {
       <div className="seat-top">
         <ElementGlyph suit={label.element} size={label.compact ? 13 : 15} />
         {!label.compact && <span className="seat-name">{label.name}</span>}
-        {label.compact && <b className="seat-value">{label.value}</b>}
+        {label.compact && <span className="stat"><span aria-hidden="true">{icon}</span><b className="seat-value">{label.value}</b></span>}
         {!label.compact && tag && <span className="tag">{tag}</span>}
       </div>
       {label.compact ? (
         tag && <span className="tag">{tag}</span>
       ) : (
         <div className="seat-bottom">
-          <b className="seat-value">{label.value}</b>
-          <span className="seat-caption">{label.value === 1 ? label.caption.replace(/s$/, '') : label.caption}</span>
-          {label.sub && <span className="seat-sub">· {label.sub}</span>}
+          <span className="stat" title={label.caption}><span aria-hidden="true">{icon}</span><b className="seat-value">{label.value}</b></span>
+          {label.points !== undefined && (
+            <span className="stat" title="points"><span aria-hidden="true">⭐</span><b>{label.points}</b></span>
+          )}
         </div>
       )}
     </div>

@@ -252,7 +252,8 @@ describe('points and absorb targets', () => {
 
   test('labels show tricks in the free-for-all and war points in the rebellion', () => {
     const f = layoutTable(ffaState(), geometryFor(ffaState(), 1256, 560), {});
-    expect(f.labels.every(l => l.caption === 'tricks')).toBe(true);
+    expect(f.labels.filter(l => l.kind === 'seat').every(l => l.caption === 'tricks')).toBe(true);
+    expect(f.labels.some(l => l.kind === 'pill')).toBe(true);
     const k = kingState();
     const r = layoutTable(k, geometryFor(k, 1256, 560), {});
     expect(r.labels.filter(l => l.kind === 'seat').every(l => l.caption === 'pts')).toBe(true);

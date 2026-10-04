@@ -57,6 +57,11 @@ export function tableGeometry(width, height, { handCount = 0, tally = false } = 
   const handTop = -height / 2 + 8 + cardH + (rows - 1) * 0.5 * cardH + lift;
   const colW = Math.max(miniH, label.w);
   const westX = -width / 2 + 6 + colW / 2;
+  const centerY = (playTop + handTop) / 2;
+  // Free-for-all slots spread toward their owners when there's room, like a real table.
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const ffaDy = clamp((playTop - centerY) - cardH / 2 - 6, cardH * 0.62, cardH * 1.1);
+  const ffaDx = clamp(width / 2 - colW - 16 - cardW / 2, cardW * 1.3, cardW * 2.2);
   return {
     width, height, cardW, cardH, rows, lift, miniW, miniH, label, tallyH,
     tallyY: top - tallyH / 2,
@@ -65,7 +70,9 @@ export function tableGeometry(width, height, { handCount = 0, tally = false } = 
     handY,
     handYBack: handY + 0.5 * cardH,
     handTop,
-    centerY: (playTop + handTop) / 2,
+    centerY,
+    ffaDx,
+    ffaDy,
     colW,
     westX,
     eastX: -westX,
@@ -91,8 +98,8 @@ export function seatMap(state) {
 }
 
 export function seatPosition(seat, g) {
-  const dy = g.cardH * 0.62;
-  const dx = g.cardW * 1.3;
+  const dy = g.ffaDy;
+  const dx = g.ffaDx;
   if (seat === 'south') return { x: 0, y: g.centerY - dy };
   if (seat === 'west') return { x: -dx, y: g.centerY };
   if (seat === 'north') return { x: 0, y: g.centerY + dy };
@@ -258,7 +265,7 @@ function seatLabel(state, idx, pos, g, rebellion) {
     element: p.element,
     value: rebellion ? state.scores[idx] : state.trickWins[idx] - pending,
     caption: rebellion ? 'pts' : 'tricks',
-    sub: rebellion ? null : `${state.scores[idx]} pts`,
+    points: rebellion ? undefined : state.scores[idx],
     tag,
     active,
   };
@@ -315,9 +322,33 @@ function layoutFFA(state, g, ui, out, labelFor) {
     out.slots.push({
       id: `slot-${idx}`,
       ...seatPosition(seats[idx], g),
-      label: idx === 0 ? 'You' : state.players[idx].name,
+      label: '',
+      fill: true,
       suit: state.players[idx].element,
       target: null,
+    });
+  }
+  const elementAt = seat => {
+    const idx = Number(Object.keys(seats).find(k => seats[k] === seat));
+    return ELEMENTS[state.players[idx].element].bg;
+  };
+  out.field = {
+    left: -g.width / 2,
+    right: g.width / 2,
+    top: g.height / 2,
+    bottom: g.handTop + 2,
+    cx: 0,
+    cy: g.centerY,
+    colors: { north: elementAt('north'), east: elementAt('east'), south: elementAt('south'), west: elementAt('west') },
+  };
+  // "Pick a card" pill in the middle while the center is empty, if it fits between the slots.
+  const pill = { w: g.label.compact ? 96 : 132, h: 30 };
+  const fits = g.ffaDy - g.cardH / 2 >= pill.h / 2 + 4 && g.ffaDx - g.cardW / 2 >= pill.w / 2 + 4;
+  if (fits && !state.revealedTrick) {
+    const picking = getHandState(state, ui).interactive;
+    out.labels.push({
+      id: 'center-pill', kind: 'pill', x: 0, y: g.centerY, w: pill.w, h: pill.h,
+      text: picking ? (previewId ? 'Ready!' : 'Pick a card') : 'Waiting…',
     });
   }
   if (previewId) {
@@ -415,7 +446,7 @@ function layoutRebellion(state, g, ui, out, tally) {
 }
 
 export function layoutTable(state, g, ui = {}) {
-  const out = { cards: [], slots: [], badges: [], labels: [], resolved: [] };
+  const out = { cards: [], slots: [], badges: [], labels: [], resolved: [], field: null };
   if (!state.players?.length) return out;
   const rebellion = isRebellionLayout(state);
   const seats = seatMap(state);
